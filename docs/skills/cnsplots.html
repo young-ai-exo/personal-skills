@@ -27,10 +27,10 @@
     <div class="container">
 
 <div class="badges page-badges">
-  <span class="badge">v1.7.0</span>
+  <span class="badge">v1.8.0</span>
   <span class="badge">derivative-enhancement</span>
   <span class="badge">BSD-3-Clause</span>
-  <span class="badge verified">verified · cnsplots 0.7.0</span>
+  <span class="badge verified">verified · cnsplots 0.8.0</span>
 </div>
 
 <p>Generates, revises, and debugs publication-quality scientific figures in Python
@@ -84,7 +84,7 @@ executable verification on top. Prefer upstream if you want to track it exactly.
   </div>
   <div class="grid-card">
     <h3><code>journal-specs.md</code> + <code>journal_preset.py</code></h3>
-    <p>Cell, Nature and Science column widths converted to cnsplots pixels, plus type, line-weight, resolution, format and colour-accessibility limits, each with its source URL. The script checks the installed defaults against a chosen journal and can emit a ready settings block.</p>
+    <p>Cell, Nature and Science column widths converted to cnsplots points, plus type, line-weight, resolution, format and colour-accessibility limits, each with its source URL. The script checks the installed defaults against a chosen journal and can emit a ready settings block.</p>
   </div>
   <div class="grid-card">
     <h3><code>color-strategy.md</code></h3>
@@ -106,18 +106,23 @@ executable verification on top. Prefer upstream if you want to track it exactly.
 </ul>
 
 <h2>Traps it guards against</h2>
-<h3>Pixels, not inches</h3>
-<p><code>cns.figure(180, 150)</code> is 180×150 <strong>pixels at 72 per inch</strong>,
+<h3>Points, not inches</h3>
+<p><code>cns.figure(180, 150)</code> is 180×150 <strong>points (1/72 inch)</strong>,
 rendered at 144 dpi, so the raster is 360×300. Writing <code>cns.figure(6, 4)</code>
-out of matplotlib habit yields a 6×4 pixel canvas.</p>
+out of matplotlib habit yields a 6×4 point canvas. Pass <code>unit="in"</code> or
+<code>unit="mm"</code> for a physical size. Separately, the default
+<code>savefig_bbox='tight'</code> crops the saved file to its artists, so a
+journal column width set on the canvas is not necessarily the width on disk;
+<code>bbox_inches=None</code> preserves the full canvas.</p>
 
 <h3>Return types are not uniform</h3>
 <p><code>heatmapplot</code> and <code>dotplot</code> return backend-native plotter
 objects, <code>vennplot</code> returns a matplotlib-venn object, and
 <code>upsetplot</code> returns panel axes. None are a plain <code>Axes</code>, so a
-bare <code>.set(...)</code> raises <code>AttributeError</code>. Meanwhile
-<code>figure</code>, <code>setup_matplotlib</code>, <code>setup_ax</code>, and
-<code>take_legend_out</code> all return <code>None</code>.</p>
+bare <code>.set(...)</code> raises <code>AttributeError</code>. In 0.8.0
+<code>figure</code> returns the styled <code>Figure</code> rather than
+<code>None</code>, while <code>setup_matplotlib</code>, <code>setup_ax</code>, and
+<code>take_legend_out</code> still return <code>None</code>.</p>
 
 <h3>multipanel does not align panel edges</h3>
 <p>Each panel's outer width includes a reserve measured from its
@@ -210,7 +215,7 @@ cns.scatterplot(data=df, x="total_bill", y="tip", ax=ax_b)
 cns.savefig("multipanel.svg")</code></pre>
 
 <h2>Verification record</h2>
-<p>Tested 2026-09-01 on Python 3.12.14 with cnsplots 0.7.0 and matplotlib 3.10.9.
+<p>Tested 2026-10-26 on Python 3.12.14 with cnsplots 0.8.0 and matplotlib 3.10.9.
 All six scripts including <code>dump_style.py greyscale</code> (now CIE L*), <code>dump_style.py colormap</code>, <code>journal_preset.py</code> and <code>recommended_overrides.py</code> run with correct exit
 codes, all four templates plus the two vendored upstream showcase scripts execute
 and were rendered to PNG and visually inspected, and every published rcParams and
@@ -222,7 +227,7 @@ end and inspected, then each showcase-only technique was verified independently
 rather than copied  -  including whether the example's private
 <code>_capture_detached_axes_layout</code> call is load-bearing, which it is not.
 Cell, Nature and Science figure requirements were read from the publishers' own
-author pages, converted to pixels, and a full Nature-compliant preset was run end
+author pages, converted to points, and a full Nature-compliant preset was run end
 to end. The documented <code>mutool</code>-missing fallback was confirmed to warn
 rather than fail.</p>
 

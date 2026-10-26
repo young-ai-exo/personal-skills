@@ -92,11 +92,43 @@ def collect_settings() -> list[tuple[str, Any]]:
     return out
 
 
+def palette_kinds() -> dict[str, str]:
+    """Map palette name to 'qualitative' or 'continuous' from the registry.
+
+    cnsplots 0.8.0 added ``available_palettes(kind)``, which enumerates the
+    installed registry instead of relying on this file's hardcoded list. Older
+    versions lack it, so fall back to probing the candidates below.
+    """
+    import cnsplots as cns
+
+    kinds: dict[str, str] = {}
+    if hasattr(cns, "available_palettes"):
+        for kind in ("qualitative", "continuous"):
+            for name in cns.available_palettes(kind):
+                kinds[name] = kind
+        return kinds
+
+    for name in PALETTE_CANDIDATES:
+        try:
+            value = cns.palettes(name)
+        except Exception:  # noqa: BLE001 - probing, any failure means unavailable
+            continue
+        kinds[name] = "continuous" if hasattr(value, "N") else "qualitative"
+    return kinds
+
+
 def probe_palettes() -> tuple[list[str], list[str]]:
     import cnsplots as cns
 
+    seen: set[str] = set()
+    names: list[str] = []
+    for name in (*palette_kinds(), *PALETTE_CANDIDATES):
+        if name not in seen:
+            seen.add(name)
+            names.append(name)
+
     ok, missing = [], []
-    for name in PALETTE_CANDIDATES:
+    for name in names:
         try:
             cns.palettes(name)
         except Exception:  # noqa: BLE001 - probing, any failure means unavailable

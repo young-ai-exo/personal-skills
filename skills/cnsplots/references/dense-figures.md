@@ -3,7 +3,9 @@
 Techniques for a full journal figure: 15 to 20 panels, mixed plot types, embedded
 images, composite plotters, and hand-tuned spacing. Modeled on the upstream
 showcase, <https://cnsplots.farid.one/latest/examples/showcase.html>, which was
-run and inspected against 0.7.0 while writing this.
+run and inspected against 0.8.0 while writing this. The vendored source itself is
+byte-identical between v0.7.0 and v0.8.0 (`git diff v0.7.0 v0.8.0 --
+examples/showcase.py` is empty), so the observations below carry over unchanged.
 
 Read [composition-patterns.md](composition-patterns.md) first for the layout
 engines. This file covers what a *dense* figure needs beyond them.
@@ -11,6 +13,20 @@ engines. This file covers what a *dense* figure needs beyond them.
 The verbatim upstream source is vendored at
 `templates/upstream-showcase/figure1.py` and `figure2.py`. When this description
 and those files disagree, the files win.
+
+**Contents**
+
+- [Panels are hand-tuned, not uniform](#panels-are-hand-tuned-not-uniform)
+- [Density comes from interlocking, not from small margins](#density-comes-from-interlocking-not-from-small-margins)
+- [Offsets: reserve, then reclaim](#offsets-reserve-then-reclaim)
+- [Embedding raster images](#embedding-raster-images)
+- [Composite plotters own their own axes](#composite-plotters-own-their-own-axes)
+- [Embedding an upsetplot](#embedding-an-upsetplot)
+- [Reworking built-in annotations](#reworking-built-in-annotations)
+- [Verifying the band structure](#verifying-the-band-structure)
+- [Figure-level conventions](#figure-level-conventions)
+- [Working order](#working-order)
+- [Files](#files)
 
 ## Panels are hand-tuned, not uniform
 
@@ -27,8 +43,9 @@ mixed-height panels leaves dead space above or below every short one.
 
 Both showcase figures use three `below=` stacks each. Figure 1 pairs a 40x40
 venn over a 50x50 donut beside 90x90 squares, and an 80x40 barplot over a 40x40
-pie beside 100-px-tall panels. In each case two short panels together span one
-tall panel's band.
+pie beside 100-pt-tall panels. In each case two short panels together span one
+tall panel's band. Sizes in these calls are points, now that `panel()` takes
+`unit="pt"` by default.
 
 Measured on the rendered PNGs, as the fraction of interior rows that are entirely
 empty:
@@ -69,8 +86,10 @@ mp.panel("D", 50, 100,
          color_cycle=cns.get_hexcolors_from_apalette([2, 4], "Bold"))
 ```
 
-`get_hexcolors_from_apalette(indices, palette)` pulls specific entries out of a
-palette, which is how you give two panels distinguishable but related colors.
+`get_palette_colors(indices, palette)` pulls specific entries out of a palette,
+which is how you give two panels distinguishable but related colors. It returns
+hex strings; `get_hexcolors_from_apalette` is the older spelling of the same
+call, still supported. Either way `palette` defaults to `Set1`, so pass the name.
 
 **Do not copy the showcase's palette variety.** It switches palette on nearly
 every panel because it is demonstrating the catalog, with the result that iris
@@ -89,10 +108,31 @@ Four knobs, and the sign matters:
 | negative `pad_*` | **reclaims** reserved space, pulling the axes toward the label |
 | negative `margin_top` | pulls the panel up into the previous row's space |
 
-Negative values are the main tool for tightening a dense figure. Measured with a
-120x90 panel at `max_width=300`: `pad_left=0` puts the axes at `x0=0.0873`,
-`pad_left=40` at `0.1540`, `pad_left=-30` at `0.0373`. The figure width does not
-change, so the axes slides within it.
+Negative values are the main tool for tightening a dense figure. Measured on
+0.8.0 with a boxplot drawn into a 120x90 panel at `max_width=300`, after a canvas
+draw (`cns.boxplot(data=tips, x="day", y="total_bill", ax=ax)`): `pad_left=0`
+puts the axes at `x0=0.0867`, `pad_left=40` at `0.1533`, `pad_left=-30` at
+`0.0367`. The figure width does not change, so the axes slides within it. The
+same three values come back after `savefig`, and 0.7.0 gives them too (identical
+to four decimals), so the unit change did not move them.
+
+Two things to know before re-using those numbers:
+
+- **They depend on the content, through the y-axis decorations.** The reserve is
+  the panel label plus the rendered width of ticks and y-label. An *empty* panel
+  of the same size measures `0.0615` at `pad_left=0` — 0.025 lower than the tips
+  boxplot. Widen the tick labels and it climbs further: the same boxplot with
+  3-character y-ticks (`700`, `800`, `900`) measures `0.1125`, and with 4-character
+  ticks (`7000`, …) `0.1254`. Quote a triple only with the plot that produced it.
+- **`pad_left` is display pixels, the canvas is points**, so the delta scales with
+  `settings.figure_dpi`: `pad_left=40` shifts the axes 0.0667 of a 300-pt canvas at
+  the default 144, 0.1333 at 72, and 0.0333 at 288 (and `pad_left=-30` gives
+  -0.05, -0.10, -0.025 respectively). The panel label's own width contributes too —
+  with the tips boxplot, labels `A` / `AB` / `ABC` give `0.0867 / 0.1058 / 0.1252`
+  at `pad_left=0`.
+
+The deltas are the reliable part: 0.0667 across `pad_left` 0→40 and -0.0500
+across 0→-30 at the default dpi, in every configuration tested.
 
 The showcase leans on this hard: `pad_left=-30` on a sankey panel, `-70` and
 `-50` on image panels whose axes need no y-label reserve at all, `-100` on an
@@ -160,9 +200,18 @@ whenever you change panel geometry, and verify by looking.
 
 `upsetplot` returns `dict[str, Axes | None]` with keys `matrix`, `shading`,
 `totals`, `intersections` (`totals` is `None` when
-`totals_plot_elements=0`). It accepts `ax=` and `fig=`, but **`ax=host` does not
-contain it**: measured axes fell outside the host rectangle. The fix is to let it
-lay out on the figure, then rescale its axes into the host rect:
+`totals_plot_elements=0`), and it takes either `ax=` or `fig=`. Measured on
+0.8.0, `ax=host` **does** confine the group: all four axes landed inside the host
+rectangle and stayed inside through a later `canvas.draw()` relayout, at every
+host size tried (190x90, 200x120, 240x100). Same result on 0.7.0, so older
+descriptions of it "spilling out" do not hold.
+
+The reason to prefer `fig=` anyway is layout, not containment: an `ax=`-embedded
+group is laid out inside the host immediately, which leaves the host's own
+contents cramped when the host is small. The showcase pattern lets the group size
+itself on the figure and then scales it onto the host rectangle, which gives
+control over the padding. Use `ax=host` for a quick embed; use the rescale below
+when you are tuning a dense figure.
 
 ```python
 host = mp.panel("M", 200, 120, margin_right=0, pad_left=-100, pad_top=10)
@@ -253,8 +302,8 @@ because the categorical ticks are already fixed.
 
 ## Verifying the band structure
 
-Panels in one row are aligned at neither edge when their heights differ: a 90-px
-and a 70-px panel sharing a row gave `y0 = 0.093 / 0.279` and `y1 = 0.930 /
+Panels in one row are aligned at neither edge when their heights differ: a 90-pt
+and a 70-pt panel sharing a row gave `y0 = 0.093 / 0.279` and `y1 = 0.930 /
 0.930` in one case, but with per-panel `pad_top` and composite plotters in play
 neither edge is reliable. Grouping by `y0` reported three separate bands for
 three panels that visibly shared one.
@@ -322,4 +371,5 @@ invisible in a zero exit code and a valid SVG.
   with a `report_bands()` acceptance check.
 - `templates/upstream-showcase/figure1.py`, `figure2.py` — the upstream source,
   verbatim and unmodified. Read these when a distilled rule here looks wrong or
-  you need an offset the prose does not cover. Both run against 0.7.0.
+  you need an offset the prose does not cover. Both run against 0.8.0; the source
+  is byte-identical to the 0.7.0 copy.

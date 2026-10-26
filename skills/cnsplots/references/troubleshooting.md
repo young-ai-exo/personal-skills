@@ -1,8 +1,11 @@
 # cnsplots troubleshooting
 
+Run every helper script through `$SKILL_DIR`, the skill's own directory — not
+the user's project root, where these paths do not exist.
+
 **`ModuleNotFoundError: No module named 'cnsplots'`** — not installed in the
-active interpreter. Confirm with `python3 scripts/check_env.py`, then ask the
-user before `python3 -m pip install cnsplots`. Watch for venv mismatch.
+active interpreter. Confirm with `python3 $SKILL_DIR/scripts/check_env.py`, then
+ask the user before `python3 -m pip install cnsplots`. Watch for venv mismatch.
 
 **Backend / display errors, or the process hangs** — set the backend before any
 plotting import:
@@ -15,8 +18,12 @@ import cnsplots as cns
 
 or export `MPLBACKEND=Agg`.
 
-**Figure is blank or tiny** — `width`/`height` are pixels. `cns.figure(6, 4)`
-gives a 6x4 *pixel* canvas. Use realistic values like `cns.figure(180, 150)`.
+**Figure is blank or tiny** — `width`/`height` are **points**. `cns.figure(6, 4)`
+is a 6x4 *point* figure: measured `get_size_inches() == (0.083, 0.056)` and a
+12x8 display canvas at 144 dpi. Use millimetres with `unit=` and it is hard to
+be wrong: `cns.figure(180, 150, unit="mm")`. In the default point unit the same
+figure is `cns.figure(510.2, 425.2)` (measured 179.9 x 149.9 mm for the rounded
+`510, 425`).
 
 **Figure looks blank in a dark viewer** — `settings.savefig_transparent` is
 `True`, so there is no background. Set
@@ -24,33 +31,52 @@ gives a 6x4 *pixel* canvas. Use realistic values like `cns.figure(180, 150)`.
 white.
 
 **`AttributeError: 'NoneType' object has no attribute ...` after `cns.figure()`**
-— `cns.figure()` returns `None`; it creates and styles the current figure. Use
-`fig = plt.gcf()`. Same for `setup_matplotlib()`, `setup_ax()`, and
-`take_legend_out()`, which all return `None`.
+— a 0.7.0-era idiom. On **<= 0.7.0** `cns.figure()` returned `None` (it created
+and styled the current figure), so you had to write `fig = plt.gcf()`. From
+**0.8.0** it returns the `Figure`, which is also the current pyplot figure, so
+`fig = cns.figure(...)` is the supported form. Verified on 0.8.0:
+`type(cns.figure(200, 160)).__name__ == 'Figure'`.
+
+`setup_matplotlib()`, `setup_ax()`, and `take_legend_out()` still return `None`
+on 0.8.0 — verified — so keep `plt.gcf()` / your own `ax` reference for those.
+Old code that ignores the return value keeps working; only code or type checks
+that asserted `None` need updating.
 
 **Multipanel produced more rows than expected** — `max_width` is compared
 against each panel's *total* width, which is
-`margin_left + decoration reserve + width + margin_right`, not the `width=` you
-passed. With `panel_margin_right` defaulting to `10`, panels of 150 and 300 px
-needed `max_width=520`, not 500. Nothing warns. Compare panel `y0` values to see
-which panels actually share a row.
+`margin_left + left_reserve + width + margin_right`, not the `width=` you
+passed. `left_reserve` is the rendered width of the panel label plus the y-axis
+decorations, so it **grows once you draw into the panel**. Empty, a 150-point and
+a 300-point panel measure 178.44 and 328.44 points and share a row from
+`max_width=507` up (scanned 500-520); with a boxplot in each they need **519**.
+Budget from the rendered version, which is what ships. Summing the raw `width=`
+values would have said 450. Nothing warns. Compare panel `y0`
+values to see which panels actually share a row.
 
 **Row check reports panels on separate rows that clearly share one** — you
 grouped by `y0` or `y1`. Panels of differing heights share a row while agreeing on
 neither edge. Group by vertical overlap; see `report_bands()` in
 `templates/dense_figure.py`.
 
-**An `upsetplot` spills outside its panel** — it accepts `ax=` but does not
-confine itself to it. Let it lay out with `fig=mp.fig`, then rescale its returned
-axes into the host rectangle after all panels exist. Recipe in
-[dense-figures.md](dense-figures.md). Its dict has a `totals` key that is `None`
-when `totals_plot_elements=0`, so filter `None` before iterating.
+**An `upsetplot` spills outside its panel** — *not on 0.8.0.* The signature
+takes a **dict of sets**, not a DataFrame (`TypeError: [upsetplot] Parameter
+'sets' must be a dictionary, got DataFrame`), and `ax=` does confine the
+layout: measured on a 240x160 canvas, all four returned axes (`matrix`,
+`shading`, `totals`, `intersections`) lie inside the host `ax` bounds
+(`60.0-432.0 x 35.2-281.6`) and stay inside through a later `draw()`. So
+`ax=host` is enough to keep it in its panel; `ax=` and `fig=` are mutually
+exclusive. The `fig=` plus rescale recipe in
+[dense-figures.md](dense-figures.md) is only worth it when you want to control
+the internal padding of a dense figure. Its dict has a `totals` key that is
+`None` when `totals_plot_elements=0` (verified), so filter `None` before
+iterating.
 
 **`heatmapplot` or `dotplot` legends overlap each other or the next panel** —
 `legend_hpad`, `legend_vpad`, `legend_hgap`, `legend_vgap`, `legend_width` are
-absolute nudges tuned for one figure size and font. They do not rescale. Re-tune
-them after any geometry change and confirm visually; a value copied from another
-figure will usually collide.
+**absolute nudges in millimetres**, not fractions of the panel: the source
+converts them with `mm2inch * figure.dpi` (`helpers/_heatmap.py`), so they do not
+rescale when the figure grows and a value copied from another figure will
+usually collide. Re-tune them after any geometry change and confirm visually.
 
 **Composite plotter title appears twice or in the wrong place** — `dotplot` and
 `heatmapplot` expose several internal axes, and `hm_ax` is not the same object as
@@ -83,10 +109,15 @@ axes sits at its uncorrected position. Call `mp.fig.canvas.draw()` before readin
 `get_position()`. You do not need it before `cns.savefig()`, which draws
 internally.
 
-**`TypeError: list indices must be integers or slices, not tuple` when saving** —
-`inset_axes(..., loc=(x, y))` was given a tuple; `loc` must be an int or a known
-string. The error surfaces at draw time, not construction. Use `GridSpec` for
-grid layouts instead of insets.
+**`TypeError` from `inset_axes(..., loc=(x, y))` at save time** — `loc` must be
+an int or a known string, not a tuple. Construction succeeds silently; the error
+only appears at draw. On matplotlib 3.10.9 the message is
+`TypeError: _compat_get_offset.<locals>.<lambda>() missing 2 required positional
+arguments: 'bbox' and 'renderer'` — the older
+`list indices must be integers or slices, not tuple` text is from earlier
+matplotlib. Reproduced on 3.10.9 for both `width="30%"` and `width=1.0` forms
+with a tuple `loc`; `loc="upper right"` draws fine. Use `GridSpec` for grid
+layouts instead of insets.
 
 **`AttributeError` on the returned object** — `heatmapplot`, `dotplot`,
 `vennplot`, and `upsetplot` do not return a plain `Axes`. Inspect with
@@ -94,7 +125,7 @@ grid layouts instead of insets.
 `plt.gca()`.
 
 **`TypeError: unexpected keyword argument`** — the signature changed between
-releases. Run `python3 scripts/inspect_api.py <function>` and match the
+releases. Run `python3 $SKILL_DIR/scripts/inspect_api.py <function>` and match the
 installed signature instead of copying older examples.
 
 **Clipped labels or overlapping ticks** — increase panel width/height, rotate
@@ -137,7 +168,7 @@ defaults to `288`, below the 300 dpi floor Cell, Nature, and Science all require
 Raise it: `with cns.settings.context(savefig_dpi=600):`. Note Cell wants 500 for
 combination art and 1000 for raster line art, and Nature requires editable vector
 for main figures rather than any raster at all. Run
-`python3 scripts/journal_preset.py <journal>` and see
+`python3 $SKILL_DIR/scripts/journal_preset.py <journal>` and see
 [journal-specs.md](journal-specs.md).
 
 **Journal rejected the figure for oversized text** — `settings.title_fontsize`
@@ -145,18 +176,42 @@ defaults to `8`, which exceeds Nature's 7 pt cap for in-figure text (Cell allows
 6-8, Science targets 7). Lower it with
 `cns.settings.context(title_fontsize=7, legend_fontsize=6)`.
 
-**Figure is the wrong physical width** — sizes are pixels at 72 per inch, so
-convert the journal's millimetres: `px = mm / 25.4 * 72`. Nature double column
+**Figure is the wrong physical width** — sizes are points (1/72 inch), so
+convert the journal's millimetres: `pt = mm / 25.4 * 72`. Nature double column
 183 mm is `max_width=519`, Cell 2-column 174 mm is `493`, Science full width
 184 mm is `522`. Verified: `max_width=519` yields a 183.1 mm figure. The
 installed `settings.multipanel_max_width=540` (190.5 mm) exceeds all three
 journals' widest columns; set it explicitly.
 
+A second trap sits behind that one: **the canvas width is not the saved width.**
+`settings.savefig_bbox` defaults to `'tight'`, so `cns.savefig()` crops to the
+drawn artists. Measured on a single `240x150` panel in a 519-point (183.1 mm)
+canvas, the saved PDF was **93.1 mm** wide, not 183.1 — the 150-point panel plus
+its margins and decorations is all that survived the crop. Trimming
+`max_width` to hit a print width therefore under-delivers. From 0.8.0 the fix
+is explicit:
+
+```python
+cns.savefig("figure.pdf", bbox_inches=None)   # keeps the full 183.1 mm canvas
+```
+
+Verified: the same figure with `bbox_inches=None` saves at 519.0 x 167.8 pt =
+183.1 mm. Note `pad_inches` applies **only** to the tight path: raising it to
+`0.5` grew the tight PDF from 92.6 to 118.0 mm wide, while the
+`bbox_inches=None` output stayed at 183.1 mm. If the on-disk size must match the
+journal's column width, set `bbox_inches=None` *and* check the result — a tight
+crop is the default and silently rescales the page.
+
 **Quantitative heatmap looks misleading in greyscale, or equal data steps look
 unequal** — the installed `palette_seq='gnuplot'` is non-monotonic in perceptual
-lightness (CIE L*) and collapses distinct values. Override at script top:
+lightness (CIE L*) and collapses distinct values. Measured on mpl 3.10.9: across
+16 samples, L\* falls from 41.4 to 37.9 through the mid-range before climbing
+again (0.0, 16.2, 29.5, 38.0, **41.4, 40.6, 38.2, 37.9**, 41.1, 45.2, ...,
+97.1), and the minimum adjacent step is `-0.16` L\* — 15 of 255 step pairs move
+by less than 0.05. `viridis` over the same 16 samples is monotonic
+(14.9 ... 90.9, max step 5.78). Override at script top:
 `cns.settings.palette_seq = 'viridis'`. See
-`scripts/recommended_overrides.py`.
+`$SKILL_DIR/scripts/recommended_overrides.py`.
 
 **SVG text became outlines, or the warning about `mutool`** — install MuPDF
 (`brew install mupdf-tools`) for Illustrator-optimized SVG post-processing.
@@ -166,12 +221,17 @@ Without it, output is a standard matplotlib SVG.
 supply a font that covers the characters.
 
 **Global style leaked into later figures** — wrap overrides in
-`with cns.settings.context(...):` instead of assigning to `cns.settings`.
+`with cns.settings.context(...):` instead of assigning to `cns.settings`. From
+0.8.0 the block also wraps `matplotlib.rc_context()`, so rcParams set inside it
+are restored on exit too. Verified: `axes.linewidth` reads `1.5` inside
+`context(axes_linewidth=1.5)` and `0.5` after, including on an exception path
+and across nested contexts. Two things are *not* undone: backend changes and
+font/colormap registrations.
 
 **Colors indistinguishable** — switch `color_cycle` (`Ecotyper1`, `Cell`,
 `Nature`, `Science`, `Set1`) and check greyscale/color-vision legibility for
 categorical series. List the accepted names with
-`python3 scripts/dump_style.py palettes`. Red-green pairs are the usual
+`python3 $SKILL_DIR/scripts/dump_style.py palettes`. Red-green pairs are the usual
 offender: prefer blue-orange for a two-level contrast, or add a non-color
 channel.
 

@@ -25,7 +25,7 @@ import cnsplots as cns
 TIPS = cns.datasets.load_dataset("tips")
 IRIS = cns.datasets.load_dataset("iris")
 
-MAX_WIDTH = 420  # row wraps beyond this pixel width
+MAX_WIDTH = 420  # row wraps beyond this many points
 TITLE = "Cohort summary"
 OUTPUT = "multipanel.svg"
 # -----------------------------------------------------------------------------
@@ -37,7 +37,7 @@ def main() -> None:
     # Panel A: distribution across categories, narrow and tall.
     # margin_bottom reserves space for the tick labels; without it they collide
     # with panel C below. Rotating labels needs more: 30 was still overlapping,
-    # 30px of margin cleared it. Prefer short category names over rotation.
+    # 30 points of margin cleared it. Prefer short category names over rotation.
     ax_a = mp.panel("A", width=110, height=130, margin_bottom=30)
     cns.violinplot(data=IRIS, x="species", y="sepal_length", ax=ax_a)
     ax_a.set_xlabel("")

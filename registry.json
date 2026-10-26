@@ -1,11 +1,11 @@
 {
   "registry_version": 1,
   "owner": "HarnessYoung",
-  "updated": "2026-09-01",
+  "updated": "2026-10-26",
   "skills": [
     {
       "name": "cnsplots",
-      "version": "1.7.0",
+      "version": "1.8.0",
       "path": "skills/cnsplots",
       "summary": "Publication-quality scientific figures in Python via the cnsplots package, including the rcParams style contract, grid/multi-panel composition patterns, dense journal-figure techniques, and cross-panel color strategy.",
       "tags": ["python", "visualization", "science", "matplotlib", "publication", "rcparams", "multipanel", "figure-layout", "color-palettes", "journal-guidelines"],
@@ -13,7 +13,7 @@
       "origin": "derivative-enhancement",
       "upstream": "https://github.com/faridrashidi/cnsplots",
       "upstream_license": "BSD-3-Clause",
-      "verified_against": "cnsplots 0.7.0"
+      "verified_against": "cnsplots 0.8.0"
     },
     {
       "name": "python-script-conventions",

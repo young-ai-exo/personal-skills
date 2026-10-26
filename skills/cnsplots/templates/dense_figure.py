@@ -172,7 +172,7 @@ def main() -> None:
     ax.set_axis_off()
 
     # E + F: a 45 + 45 stack occupying one column of the same band. Two short
-    # panels fill the height of the 100-px panels beside them.
+    # panels fill the height of the 100-point panels beside them.
     ax = mp.panel("E", 80, 42, margin_right=0, color_cycle=[cns.VIOLET])
     cns.barplot(data=tips_df, y="day", x="total_bill", errorbar="se", width=0.7)
     ax.set_title("Barplot")
@@ -218,7 +218,7 @@ def main() -> None:
     ax.get_legend().set_title(None)
     ax.set_title("KDE")
 
-    # J + K: two 40-px round plots stacked to match the 88-px squares. vennplot
+    # J + K: two 40-point round plots stacked to match the 88-point squares. vennplot
     # returns a venn object, so its title goes through mp.get_axes().
     mp.panel("J", 38, 38, pad_left=32, margin_right=0, color_cycle="Tableau")
     cns.vennplot(gene_sets, labels=("A", "B", "C"))
@@ -281,8 +281,10 @@ def main() -> None:
     cns.placeholderplot("Reserved slot (124x90)\nFill this in later.")
     ax.set_title("Placeholder")
 
-    # Every panel now exists. upsetplot lays out on the figure and overflows a
-    # host when given ax=, so let it place itself and rescale it in.
+    # Every panel now exists. `ax=` does confine the group on 0.8.0, but it lays
+    # out inside the host immediately and looks cramped when the host is small.
+    # Laying out on the figure and rescaling onto the host gives control of the
+    # padding, so that is the pattern used here.
     upset_axes = cns.upsetplot(
         upset_sets,
         fig=mp.fig,

@@ -13,7 +13,7 @@ have no rcParam counterpart and are read directly by cnsplots.
 python3 $SKILL_DIR/scripts/dump_style.py settings
 ```
 
-Values below are measured from **cnsplots 0.7.0**.
+Values below are measured from **cnsplots 0.8.0**.
 
 ## Usage
 
@@ -33,8 +33,11 @@ Prefer `context(...)` in any script that produces more than one figure. Verified
 
 ## Figure defaults
 
-Consumed when you call `cns.figure()` with no explicit size. Sizes are 72-dpi
-pixels; see [rcparams.md](rcparams.md) for the pixel-to-inch contract.
+Consumed when you call `cns.figure()` with no explicit size. Sizes are
+**points** (1/72 inch); see [rcparams.md](rcparams.md) for the point-to-inch
+contract. A dimension you omit always takes the value here **in points**, even
+when you pass `unit=`: `cns.figure(height=60, unit="mm")` is 60 mm tall but
+150 points (52.9 mm) wide, not 150 mm.
 
 | Setting | Value |
 | --- | --- |
@@ -68,6 +71,28 @@ the container. Note `panel_margin_bottom` and `panel_margin_right` default to
 `pad_left` / `pad_top` add to an internally measured reserve for axis
 decorations rather than replacing it, which is why they cannot be used to force
 panels into alignment. See [composition-patterns.md](composition-patterns.md).
+
+As of 0.8.0 these tables mix three units, and only the first group responds to
+`unit=`:
+
+- **Points, scaled by `unit=` when supplied explicitly** — `figure_width`,
+  `figure_height`, `multipanel_max_width`, `panel_width`, `panel_height`.
+  Verified: `mp.panel(width=2, unit="in")` and `width=50.8, unit="mm"` both land
+  at 144 points of axes width.
+- **Points, never scaled** — every `panel_margin_*`, and the default for an
+  omitted dimension. Verified: `margin_right=2` stores `2` under `pt`, `in`, and
+  `mm` alike, and omitting `panel_width` gives `150` points even when the
+  multipanel was built with `unit="mm"`.
+- **Display pixels, never scaled** — `panel_pad_left`, `panel_pad_top`. These
+  are rendered-pixel offsets added on top of the measured decoration
+  width/height.
+
+So `unit=` moves the axes box and the canvas, not the gaps around them. Measured:
+`pad_left=20` on a panel whose decorations already reserve 52.5 px took the left
+reserve from 32.0 to 42.0 points, and `pad_left=40` to 52.0 — the `pad_left` is
+added, never substituted. Verified panel axis size is exact too:
+a `width=150, height=90` panel measures 300x180 rendered px at 144 dpi, i.e.
+exactly 150x90 points.
 
 ## Palettes
 
@@ -144,9 +169,12 @@ is keyword-only: `take_legend_out(ax)` does not raise, it sets the legend
 | `pvalue_fontsize` | `'small'` |
 | `annotation_auto_contrast` | `True` |
 
-`pvalue_format='star'` prints significance stars. Switch to a numeric format
-when a reviewer needs exact p-values; confirm the option name against the
-installed docstring first.
+`pvalue_format='star'` prints significance stars. The accepted values are
+`'star'`, `'threshold'`, and `'full'` (`_P_VALUE_FORMATS` in `_settings.py`);
+anything else raises. Use `'threshold'` or `'full'` when a reviewer needs exact
+p-values. `pvalue_loc` accepts only `'inside'` and `'outside'`
+(`_P_VALUE_LOCS`). Both are validated on assignment, so a typo fails
+immediately rather than at draw time.
 
 ## Export
 
@@ -174,6 +202,11 @@ installed docstring first.
 | `verbosity` | `1` |
 
 Applied through `cns.setup_scanpy()` and `cns.setup_ggplot()`. Note
-`setup_ax_colorbar_label` defaults to `'FDR q-val'`, so `cns.setup_ax(ax)` on an
-axes with an unrelated colorbar will mislabel it: pass
-`colorbar_label="Expression"` or `""` explicitly.
+`setup_ax_colorbar_label` defaults to `'FDR q-val'`, and `cns.setup_ax(ax)`
+relabels whatever colorbar it finds to that: verified, an unlabelled scatter
+colorbar became `'FDR q-val'` after a bare `setup_ax(ax)`. Pass
+`colorbar_label="Expression"` — or `""` to leave it blank — explicitly.
+
+The lookup is `ax.collections[0].colorbar`, so it only fires for colormapped
+**collections** (scatter with `c=`), not `imshow` / `pcolormesh` images, which
+live in `ax.images` and are left alone.

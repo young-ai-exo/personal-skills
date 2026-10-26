@@ -35,8 +35,9 @@ GRID_Y = "total_bill"
 GRID_ROWS, GRID_COLS = 2, 2
 
 # max_width must exceed the sum of axes widths PLUS each panel's decoration
-# reserve and margins, or a row wraps silently. 150 + 300 needs 520, not 500.
-# The assertion at the end of main() catches an unintended wrap.
+# reserve and margins, or a row wraps silently. That reserve grows once content
+# is drawn: a 150- and a 300-point panel share a row from 507 empty, 519 with a
+# boxplot in each. The assertion at the end of main() catches an unintended wrap.
 MAX_WIDTH = 560
 HOST_W, HOST_H = 300, 120  # host rectangle for the grid block
 OUTPUT = "mixed_grid.svg"

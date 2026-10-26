@@ -1,6 +1,6 @@
 ---
 name: cnsplots
-description: Generate, revise, and debug publication-quality scientific figures in Python with the cnsplots package (Cell/Nature/Science styling, pixel-exact sizing, built-in statistical annotations, editable SVG/PDF export). Also covers applying the cnsplots style to plain matplotlib, seaborn, or scanpy axes, repeated grid panels, heterogeneous multi-panel layouts, and the rcParams contract for custom artists. Use when a user asks for cnsplots code, journal-style plots, multi-panel or grid figures, survival/volcano/GSEA/ROC/heatmap plots, or Illustrator-editable vector figure output.
+description: Generate, revise, and debug publication-quality scientific figures in Python with the cnsplots package (Cell/Nature/Science styling, precise physical figure dimensions, built-in statistical annotations, editable SVG/PDF export). Also covers applying the cnsplots style to plain matplotlib, seaborn, or scanpy axes, repeated grid panels, heterogeneous multi-panel layouts, and the rcParams contract for custom artists. Use when a user asks for cnsplots code, journal-style plots, multi-panel or grid figures, survival/volcano/GSEA/ROC/heatmap plots, or Illustrator-editable vector figure output.
 ---
 
 # cnsplots
@@ -24,7 +24,7 @@ project root:
   sequential colormap overrides, with measured perceptual-uniformity reasoning;
   `--code` emits a ready block to paste at script top
 - `$SKILL_DIR/scripts/journal_preset.py` — Cell/Nature/Science figure limits in
-  pixels, and which installed defaults violate them; `--code` emits a ready
+  points, and which installed defaults violate them; `--code` emits a ready
   `settings.context(...)` block
 - `$SKILL_DIR/scripts/validate_output.py` — post-save artifact validation
 
@@ -49,8 +49,10 @@ block. Start from one instead of writing a layout from scratch:
   `cnsplots._utils`, `cnsplots.plots._distribution`, or any other private module.
 - Verify every function signature against the *installed* version before writing
   final code (step 2). The API changes between releases; do not trust memory.
-- Sizes in `cns.figure()` / `mp.panel()` are **pixels at 72 per inch**, not
-  inches. Rendering happens at 144 dpi, so a 200-px figure rasterizes to 400 px.
+- Sizes in `cns.figure()` / `mp.panel()` are **points (1/72 inch)**, not inches.
+  Pass `unit="in"` or `unit="mm"` for physical dimensions; an omitted dimension
+  uses its `cns.settings` value in points regardless of `unit`. Display DPI is
+  144 (so a 200-pt figure shows a 400-px canvas); export DPI is 288.
 - Never invent data, labels, units, group orders, thresholds, or statistical
   tests. If a choice changes scientific meaning and cannot be inferred, ask.
 - One palette per figure, and one color per meaning. Pass `hue_order` on every
@@ -112,10 +114,14 @@ breaking on systems that lack Arial. Full measurements and reasoning:
 
 ### 3. Verify the target journal's requirements
 
-Without MuPDF's `mutool`, `cns.savefig("f.svg")` still works but falls back to
-plain matplotlib SVG with a warning (no Illustrator post-processing).
+Read the column width, type limits, and resolution floor from
+[references/journal-specs.md](references/journal-specs.md) before choosing
+dimensions, and emit a compliant preset with
+`python3 $SKILL_DIR/scripts/journal_preset.py <journal> --code`. Without MuPDF's
+`mutool`, `cns.savefig("f.svg")` still works but falls back to plain matplotlib
+SVG with a warning (no Illustrator post-processing).
 
-### 2. Inspect the data, then the API
+### 4. Inspect the data, then the API
 
 Print columns, dtypes, null counts, category levels, and event coding for the
 real input. Then confirm the signature of each function you plan to call:
@@ -127,7 +133,7 @@ python3 $SKILL_DIR/scripts/inspect_api.py boxplot survivalplot multipanel
 Pick the narrowest suitable function from
 [references/plot-catalog.md](references/plot-catalog.md).
 
-### 3. Choose the layout before writing code
+### 5. Choose the layout before writing code
 
 Four cases. Getting this wrong costs a rewrite, because the layout engines are
 not interchangeable.
@@ -154,7 +160,7 @@ a warning. `tight_layout` belongs to the matplotlib grid path. Full reasoning an
 measurements:
 [references/composition-patterns.md](references/composition-patterns.md).
 
-### 4. Build the figure
+### 6. Build the figure
 
 ```python
 import matplotlib
@@ -163,15 +169,21 @@ matplotlib.use("Agg")  # required for headless runs
 
 import cnsplots as cns
 
-cns.figure(width=180, height=150, color_cycle="Ecotyper1")
+fig = cns.figure(width=180, height=150, color_cycle="Ecotyper1")
 ax = cns.boxplot(data=df, x="group", y="value", pairs=[("A", "B")])
 ax.set(xlabel="Group", ylabel="Value (a.u.)")
-cns.savefig("outputs/figure.svg")
+cns.savefig("outputs/figure.svg", fig=fig)
 ```
 
 - `cns.figure()` applies the full style **and** creates the figure; it returns
-  `None`, so reach the figure with `plt.gcf()`. Do not also call
-  `setup_matplotlib()`.
+  the matplotlib `Figure`, which also becomes current, so keep the handle:
+  `fig = cns.figure(...)`. `plt.gcf()` still works but is no longer needed. Do
+  not also call `setup_matplotlib()`.
+- Sizing is in points; for a physical size pass `unit=` instead of converting by
+  hand: `cns.figure(183, 100, unit="mm")`, `cns.multipanel(max_width=183,
+  unit="mm")`, `mp.panel("A", width=2, height=1, unit="in")`. Panel `unit`
+  overrides the constructor's. Margins stay in points and `pad_left`/`pad_top`
+  stay in display pixels regardless of `unit`.
 - Creating the figure yourself, or drawing with plain matplotlib, seaborn, or
   scanpy? Use `cns.setup_matplotlib()` first, or `cns.setup_ax(ax)` to retrofit
   existing axes. Patterns: [references/style-bridge.md](references/style-bridge.md).
@@ -179,23 +191,47 @@ cns.savefig("outputs/figure.svg")
   `fontsize`, `linewidth`, or `frameon`; every value you supply overrides the
   journal style.
 - Temporary style changes: `with cns.settings.context(...):` — do not mutate
-  global settings permanently.
+  global settings permanently. Call `cns.figure()` / `setup_matplotlib()`
+  **inside** the block for the temporary values to reach rcParams; the context
+  now restores rcParams on exit too, including nested contexts and exceptions.
+- Read statistics back instead of trusting the annotation. `cns.boxplot`,
+  `violinplot`, `barplot`, `lollipopplot`, and `stackplot` accept `pairs=` as a
+  list, `"all"`, or `"hue"`; after the call, `cns.get_comparison_results(ax)`
+  returns a DataFrame of group1/group2, test, `n1`/`n2`, raw and adjusted
+  p-values, `significant`, and the rendered label, without rerunning anything.
+  Paired designs: pass `test="t-test_paired"` or `"Wilcoxon"` with
+  `subject=<id column>`; this aligns by subject and raises on duplicate
+  subjects, so plot summaries and matched-test counts can differ. Read survival
+  estimates with `cns.get_survival_results(ax)`, and ROC / precision-recall /
+  calibration results with `get_roc_results` / `get_precision_recall_results` /
+  `get_calibration_results`.
 - `cns.take_legend_out(ax=ax)` — `ax` is **keyword-only**. Written positionally
   it silently sets the legend *title* to the axes repr string.
 - `heatmapplot` / `dotplot` return backend plotter objects, `vennplot` returns a
   matplotlib-venn object, `upsetplot` returns panel axes — not a plain `Axes`.
   Guard `.set(...)` calls accordingly.
 
-### 5. Save and validate
+### 7. Save and validate
 
 ```bash
 python3 $SKILL_DIR/scripts/validate_output.py outputs/figure.svg
 ```
 
-Prefer SVG or PDF for submission, PNG for preview. A clean script exit is not
-evidence the figure is correct: every layout defect found while building this
-skill (a silently wrapped multipanel row, tick labels crashing into the panel
-below, an unrequested p-value annotation) exited zero and produced a valid file.
+Prefer SVG or PDF for submission, PNG for preview. `cns.savefig(path)` saves the
+current figure; pass `fig=fig` to save a retained figure without changing which
+one is current. Per-save `dpi=`, `transparent=`, `bbox_inches=`, and
+`pad_inches=` override the `savefig_*` settings for that call only.
+
+**The canvas size is not the saved size.** The default `savefig_bbox='tight'`
+crops to the artists, so a figure laid out to a journal column width saves
+narrower than that width. Measured: a 519-pt (183 mm) multipanel canvas holding
+one 240x150 panel saves at about 94 mm. Whenever the printed width must equal the
+column width, save with `bbox_inches=None`; `pad_inches` then no longer applies.
+
+A clean script exit is not evidence the figure is correct: every layout defect
+found while building this skill (a silently wrapped multipanel row, tick labels
+crashing into the panel below, an unrequested p-value annotation) exited zero and
+produced a valid file.
 
 Render a PNG and look at it. `savefig_transparent` is `True` by default, so set
 `cns.settings.savefig_transparent = False` for the preview or the figure may
@@ -215,10 +251,13 @@ Image.open("figure.png").convert("L").save("figure_grey.png")
 For multipanel, confirm the row structure is what you intended. `max_width` must
 exceed the sum of axes widths **plus** each panel's decoration reserve and
 margins; otherwise a panel wraps to the next row with no warning. Measured: two
-panels of 150 and 300 px needed `max_width=520`, not 500. Compare `y0` values to
-verify which panels share a row.
+panels of 150 and 300 points need `max_width=519` once a boxplot is drawn in
+each (507 for empty panels), so budget from the rendered version, not the bare
+widths. Compare `y0` values to verify which panels share a row. `mp.newline()`
+forces a row break; repeated calls add no blank rows, and a `below=` stack stays
+with its parent.
 
-### 6. Report
+### 8. Report
 
 Return the full runnable script, the absolute output path, the palette/size
 choices made, and every scientific assumption (tests, comparison direction,
@@ -230,7 +269,13 @@ event coding, transformations).
   analysis decisions. Surface them explicitly; never add them for decoration.
 - Name the test actually used by the installed function's docstring (e.g.
   two-sided Mann-Whitney U for `boxplot`, Welch's t-test for `barplot`,
-  Fisher's exact for `stackplot`), not an assumed one.
+  Fisher's exact for `stackplot`), not an assumed one. Paired tests
+  (`t-test_paired`, `Wilcoxon`) require `subject=`; without it the package
+  refuses rather than silently testing independent samples.
+- Confirm what was tested from the result table rather than the drawn label.
+  `cns.get_comparison_results(ax)` reports the sample sizes the test actually
+  used, which differ from the plotted counts when rows are dropped or subjects
+  are matched.
 - **Some functions annotate a test you did not request.** `cns.kdeplot` with a
   two-level `hue` runs a two-sample Kolmogorov-Smirnov test and prints
   `P = ...` on the axes; `add_mode=False` does not suppress it, and with three

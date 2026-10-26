@@ -13,6 +13,17 @@ panels that no amount of parameter tuning will fix.
 | Per-panel palette | global only | `color_cycle=` | global only |
 | Use for | one repeated plot | heterogeneous figure | heterogeneous + a repeated block |
 
+**Contents**
+
+- [Decision rule](#decision-rule) — which of the three engines
+- [Why multipanel does not align panels](#why-multipanel-does-not-align-panels)
+- [Pattern A: repeated grid, matplotlib](#pattern-a-repeated-grid-matplotlib)
+- [Pattern B: heterogeneous figure, multipanel](#pattern-b-heterogeneous-figure-multipanel)
+- [Pattern C: repeated grid inside a heterogeneous figure](#pattern-c-repeated-grid-inside-a-heterogeneous-figure)
+- [Returned objects](#returned-objects)
+- [The draw handler, and why `tight_layout` is not the analogue](#the-draw-handler-and-why-tight_layout-is-not-the-analogue)
+- [Checking which panels share a row](#checking-which-panels-share-a-row)
+
 ## Decision rule
 
 1. Every panel same size and same plot type, no other panels? **Pattern A**,
@@ -29,24 +40,27 @@ section for why.
 
 `multipanel` sizes each panel as
 `margin_left + left_reserve + width + margin_right`
-(`_multipanels.py:440`), where `left_reserve` comes from
-`_get_left_reserve_px()` (`:395`) and is derived from that panel's **actually
-rendered** y-axis decoration width. Your `width=` constrains the axes only; the
-panel's outer width is discovered at draw time.
+(`_multipanels.py:460`, `_get_panel_total_size`), where `left_reserve` comes
+from `_get_left_reserve_px()` (`:420`) and is derived from that panel's
+**actually rendered** y-axis decoration width. Your `width=` constrains the axes
+only; the panel's outer width is discovered at draw time.
 
 Consequence: two panels whose y tick labels differ in width get different axes
 left edges. Measured with three `below=`-stacked panels at y magnitudes 1, 1e5,
-and 10, all `width=150`:
+and 10, all `width=150`, `multipanel(max_width=420)` on 0.8.0:
 
 ```
-A: x0=0.06547
-B: x0=0.11391
-C: x0=0.07531
+A: x0=0.04390
+B: x0=0.07619
+C: x0=0.03943
 ```
 
-With identical magnitudes they agree exactly (`0.06547` for both). The same
-applies to flow layout: six `140x100` panels forming a visual 3x2 grid gave
-column-two left edges of `0.4622`, `0.4784`, `0.4461` across the three rows.
+With identical magnitudes they agree to within a tenth of a display pixel: A and
+B both `0.04390`, C `0.04405`, the 0.13 display-pixel difference tracing to the
+label glyph `C` measuring 11.625 display px against 11.5 for `A`/`B`. The same
+applies to flow layout: six `140x100` panels forming a visual 3x2 grid at
+`max_width=420` gave column-two left edges of `0.4449`, `0.4452`, `0.442` across
+the three rows.
 
 So `below=` stacks panels **vertically in the same column slot**, but does not
 align their axes edges. Use it for semantic grouping where a few pixels do not
@@ -56,26 +70,36 @@ risk table underneath).
 Three fixes were tested; two do not work:
 
 - Unify tick formatting with a shared `FuncFormatter`: gets to
-  `0.11484 / 0.11484 / 0.115`. Close but not exact, and it forces one tick
-  format on every panel.
+  `0.03006 / 0.07619 / 0.03943`. It narrows the worst panel but does not
+  equalize them, and it forces one tick format on every panel. (The formatter
+  only re-measures panels whose rendered labels actually changed: panel A's
+  reserve fell `25.375` -> `13.75` px while B and C were untouched.)
 - Hand-tune `pad_left`: `pad_left` is **added on top of** the measured reserve,
-  not substituted for it, so the panels stay unequal.
-- `ax.set_position()` after all panels exist: aligns correctly, then is
-  **discarded whenever the next draw remeasures the layout**, and `savefig`
-  draws. Measured on one configuration: `0.11391` for all three before save,
-  `0.07141 / 0.12687 / 0.08266` after. On another it reverted exactly to the
-  original ragged values instead. Either way the override does not survive, and
-  the outcome is configuration-dependent rather than predictable. See the draw
-  handler section below for when a remeasure is triggered.
+  not substituted for it, so the panels stay unequal. Measured at the same
+  `max_width=420`: `pad_left=0/20/40` moved the left reserve of a panel with
+  `52.5` px of decorations from `32.0` to `42.0` to `52.0` points, and its `x0`
+  from `0.07619` to `0.10000` to `0.12381`.
+- `ax.set_position()` after all panels exist: aligns correctly at first, then is
+  **discarded whenever the next draw remeasures the layout**. Measured on the
+  ragged triple: setting all three to `x0=0.114` survives a plain
+  `fig.canvas.draw()` but `cns.savefig()` reverts them to
+  `0.04390 / 0.07619 / 0.03943`; forcing a re-measure with
+  `fig.set_dpi(288)` and a draw reverts to `0.04412 / 0.07671 / 0.03951`. On a
+  uniform-magnitude pair the same override also reverted exactly to `0.04390`
+  for both on save. Either way the override does not survive, and the outcome is
+  configuration-dependent rather than predictable. See the draw handler section
+  below for when a remeasure is triggered.
 
 Do not attempt to force alignment on multipanel axes. Use Pattern C.
 
 How bad the raggedness is depends entirely on how much the y tick label widths
-differ. At magnitudes 1 versus 1e5 the gap was `0.048` in figure coordinates,
-roughly 19 px, and obvious. With three panels at 1 / 1e6 / 10 and a shared title
-it was about 4 px, which is hard to see. So `below=` is fine for stacking panels
-that share tick formatting or sit at similar magnitudes; it is only unusable when
-you need guaranteed edge alignment across differing label widths.
+differ. At magnitudes 1 versus 1e5 the A/B gap measured `0.03229` in figure
+coordinates, roughly 27 px on an 840 px canvas, and obvious. With three panels
+at 1 / 1e6 / 10 the total span was only `0.00446`, about 4 px, because `1e6`
+renders in offset notation and is no wider than a small plain number. So
+`below=` is fine for stacking panels that share tick formatting or sit at
+similar magnitudes; it is only unusable when you need guaranteed edge alignment
+across differing label widths.
 
 ## Pattern A: repeated grid, matplotlib
 
@@ -86,7 +110,6 @@ import matplotlib
 
 matplotlib.use("Agg")
 
-import matplotlib.pyplot as plt
 import cnsplots as cns
 
 groups = ["BRCA1", "TP53", "EGFR", "MYC", "KRAS", "PTEN"]
@@ -94,8 +117,8 @@ ncols = 3
 nrows = -(-len(groups) // ncols)
 panel_w, panel_h = 120, 100
 
-cns.figure(width=ncols * panel_w, height=nrows * panel_h)
-fig = plt.gcf()                       # cns.figure() returns None
+# 0.8.0 returns the Figure; on 0.7.0 this was None and you needed plt.gcf().
+fig = cns.figure(width=ncols * panel_w, height=nrows * panel_h)
 axes = fig.subplots(nrows, ncols, squeeze=False)
 
 for idx, name in enumerate(groups):
@@ -147,8 +170,17 @@ cns.savefig("figure.svg")
 ```
 
 - Panels flow left to right and wrap when the row exceeds `max_width`.
-- `mp.newline()` forces a break by inserting a spacer that consumes the rest of
-  the row.
+- `mp.newline()` forces a break. A panel attached with `below=` stays with its
+  parent, and the new row starts beneath the whole stack. Repeated calls and
+  empty layouts add no blank rows.
+  **This only works from 0.8.0.** On 0.7.0 a single `newline()` did *not* break
+  the row — three 100-wide panels at `max_width=420` all landed on
+  `y0=0.0930`, and a `below=` stack plus `newline()` still put the next panel
+  beside the stack (`B y0=0.6286`, level with `A`). Measured the same script on
+  0.8.0: `A y0=0.5465`, `B y0=0.0465`, and with a two-deep `below=` stack
+  `B y0=0.0270` sits below `A2 y0=0.3176`. Repeated `newline()` on 0.8.0 leaves
+  one spacer (`len(mp._panels)==3` for two real panels), and calling it before
+  any panel adds nothing.
 - `below="A"` stacks under panel A instead of flowing.
 - `mp.get_axes("A")` retrieves a panel's axes later; `mp.fig` is the figure.
 - `panel_margin_bottom` and `panel_margin_right` default to `10`, so panels are
@@ -165,7 +197,6 @@ import matplotlib
 
 matplotlib.use("Agg")
 
-import matplotlib.pyplot as plt
 import cnsplots as cns
 
 mp = cns.multipanel(max_width=520)
@@ -208,8 +239,9 @@ Two ordering constraints, both load-bearing:
 
 1. **Subdivide after every `mp.panel()` call.** Adding a panel afterwards
    re-flows the host; the already-placed grid stays put and ends up outside the
-   host rectangle. Reproduced: adding panel C after subdividing moved host B to
-   `y0=0.025` while the cells kept their old coordinates.
+   host rectangle. Reproduced: adding panel C after subdividing moved host B
+   from `y0=0.03922` to `y0=0.02759` while the cells kept their old
+   coordinates exactly (`0.03546 / 0.03922` before and after).
 2. **Call `fig.canvas.draw()` before reading `host.get_position()`.** Before the
    first draw, the reserve is unmeasured and the rectangle is a provisional
    value.
@@ -241,9 +273,11 @@ backend plotter objects, `vennplot` a matplotlib-venn object, and `upsetplot` a
 also manage their own internal axes, so they cooperate poorly with a `GridSpec`
 cell.
 
-`dotplot` does accept `ax=host` and stays inside the panel. `upsetplot` accepts
-`ax=` but **overflows** it, so it needs a rescale step. Styling their internal
-axes and embedding a detached plotter are covered in
+`dotplot` accepts `ax=host` and stays inside the panel. `upsetplot` also takes
+`ax=host`, and on 0.8.0 it does confine itself: all four returned axes measured
+inside the host rectangle, so no rescale step is needed. It takes a **dict of
+sets**, not a DataFrame. `ax=` and `fig=` are mutually exclusive. Styling their
+internal axes and embedding a detached plotter are covered in
 [dense-figures.md](dense-figures.md).
 
 ## The draw handler, and why `tight_layout` is not the analogue
@@ -251,15 +285,19 @@ axes and embedding a detached plotter are covered in
 `multipanel` cannot know how much horizontal space a panel's y-axis decorations
 need until they have been rendered. So it lays out with a zero reserve, draws,
 measures, and lays out again. The measuring step is `_on_draw`, registered on
-matplotlib's standard `draw_event` from inside `panel()` (`_multipanels.py:777`
-via `_connect_draw_handler`, `:479`), and it iterates up to
+matplotlib's standard `draw_event` from inside `panel()` (`_multipanels.py:504`
+is `_connect_draw_handler`, called from `_create_or_update_figure` at `:802`,
+which `panel()` reaches at `:1104`), and it iterates up to
 `_RELAYOUT_MAX_PASSES = 3` times until the measurement stops changing.
 
 Observable: for a panel whose y tick labels are wide, the cached reserve is
 `0.0` and the axes sits at `x0 = 0.0` before any draw; after the first draw the
-reserve is `79.62` px and `x0` is `0.15188`. A second draw changes nothing, so it
-has converged. Without the handler, those labels overlap the panel letter of the
-neighbour to the left.
+reserve is populated and `x0` moves right. Measured on 0.8.0 with a 150x90
+panel at `max_width=420`: crowded tick labels (`0.0 / 100000.0 / 200000.0`) plus
+a long y-label give a `83.125` px reserve and `x0 = 0.11265`; the plain
+`100000 / 200000` default labels alone give `52.5` px and `0.07619`. A second
+draw changes nothing, so it has converged. Without the handler, those labels
+overlap the panel letter of the neighbour to the left.
 
 **It is automatic, and multipanel-only.** There is nothing to enable. The first
 `mp.panel()` call creates the figure and connects the handler; each `multipanel`
@@ -278,13 +316,14 @@ mp.fig.canvas.draw()      # only needed before you READ get_position()
 
 Even that is usually unnecessary. `cns.savefig()` draws internally, and the
 reserve is correct by the time the file is written: measured `0.0` before
-`savefig`, `45.6` after, with no manual call anywhere.
+`savefig`, `25.375` px after, with no manual call anywhere.
 
 **`tight_layout` is not the counterpart, and does nothing here.** The two
 optimize opposite things: `tight_layout` resizes axes to fit a fixed figure,
-while `_on_draw` keeps axes at exactly the requested pixel size and adjusts the
-figure and panel offsets around them. A panel requested at 150x90 renders at
-150.0x90.0.
+while `_on_draw` keeps axes at exactly the requested size in points and adjusts
+the figure and panel offsets around them. Verified: a panel requested at
+`width=150, height=90` measures `300x180` rendered px at 144 dpi, exactly
+150.0x90.0 points.
 
 On a `multipanel` figure, `fig.tight_layout()` is a **no-op that emits a
 warning**:
@@ -316,9 +355,10 @@ cns.savefig("figure.svg")
 
 One consequence for hand-tuning: the handler only relayouts when a left-side
 measurement changes by more than an internal tolerance. Changing y tick
-`labelsize` triggers it (reserve `40.9` to `47.2`), whereas replacing the y-axis
-*label text* does not, because that label is rotated 90 degrees and its width
-depends on font size rather than string length. So whether a manual
+`labelsize` triggers it (measured `71.5` -> `105.25` px of reserve for
+`labelsize` 7 -> 12), whereas replacing the y-axis *label text* does not
+(`71.5` -> `71.5` px, unchanged), because that label is rotated 90 degrees and
+its width depends on font size rather than string length. So whether a manual
 `ax.set_position()` survives a draw depends on whether that draw also tripped a
 remeasure; it is not unconditionally erased, which is why relying on it either
 way is unsafe.

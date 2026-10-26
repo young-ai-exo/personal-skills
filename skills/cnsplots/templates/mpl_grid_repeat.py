@@ -15,9 +15,7 @@ from __future__ import annotations
 
 import matplotlib
 
-matplotlib.use("Agg")  # headless; must precede pyplot import
-
-import matplotlib.pyplot as plt
+matplotlib.use("Agg")  # headless; must precede any plotting import
 
 import cnsplots as cns
 
@@ -30,7 +28,7 @@ Y_COLUMN = "total_bill"
 Y_LABEL = "Total bill (USD)"
 
 NCOLS = 2
-PANEL_W = 130  # 72-dpi pixels, per panel
+PANEL_W = 130  # points (1/72 inch), per panel
 PANEL_H = 110
 OUTPUT = "grid_repeat.svg"
 # -----------------------------------------------------------------------------
@@ -40,9 +38,8 @@ def main() -> None:
     levels = list(DATA[FACET_COLUMN].unique())
     nrows = -(-len(levels) // NCOLS)  # ceiling division
 
-    # cns.figure() applies the full style and returns None.
-    cns.figure(width=NCOLS * PANEL_W, height=nrows * PANEL_H)
-    fig = plt.gcf()
+    # cnsplots 0.8+ returns the styled Figure; on 0.7 and earlier use plt.gcf().
+    fig = cns.figure(width=NCOLS * PANEL_W, height=nrows * PANEL_H)
     axes = fig.subplots(nrows, NCOLS, squeeze=False)
 
     for index, level in enumerate(levels):

@@ -1,13 +1,17 @@
 #!/usr/bin/env python3
 """Print cnsplots figure dimensions and style overrides for a target journal.
 
-Converts published column widths into the pixel values cnsplots expects
-(1 px = 1/72 inch) and reports where the package defaults violate the journal's
+Converts published column widths into the point values cnsplots expects
+(1 pt = 1/72 inch) and reports where the package defaults violate the journal's
 stated limits.
 
 The numbers come from the publishers' author pages as read in September 2026 and
 are documented with sources in references/journal-specs.md. Publishers revise
 these; confirm against the journal's current page before submitting.
+
+A journal width is a canvas width: the default `savefig_bbox='tight'` crops the
+saved file to its artists, so use `cns.savefig(..., bbox_inches=None)` when the
+printed width must match the column width.
 
 Usage:
   python3 journal_preset.py                 # all journals
@@ -19,7 +23,7 @@ from __future__ import annotations
 
 import argparse
 
-PX_PER_INCH = 72.0
+PT_PER_INCH = 72.0
 MM_PER_INCH = 25.4
 
 # Published limits. font/line are (min, max) in pt; None means not stated.
@@ -63,8 +67,8 @@ JOURNALS: dict[str, dict] = {
 }
 
 
-def mm_to_px(mm: float) -> int:
-    return round(mm / MM_PER_INCH * PX_PER_INCH)
+def mm_to_pt(mm: float) -> int:
+    return round(mm / MM_PER_INCH * PT_PER_INCH)
 
 
 def describe(key: str, spec: dict) -> None:
@@ -73,10 +77,10 @@ def describe(key: str, spec: dict) -> None:
     print(f"\n=== {spec['label']} ===")
     print("  widths (max_width / figure width):")
     for name, mm in spec["widths_mm"].items():
-        print(f"    {name:<12} {mm:>4} mm  ->  {mm_to_px(mm):>4} px")
+        print(f"    {name:<12} {mm:>4} mm  ->  {mm_to_pt(mm):>4} pt")
     if spec["max_height_mm"]:
         mm = spec["max_height_mm"]
-        print(f"    {'max height':<12} {mm:>4} mm  ->  {mm_to_px(mm):>4} px")
+        print(f"    {'max height':<12} {mm:>4} mm  ->  {mm_to_pt(mm):>4} pt")
     else:
         print(f"    {'max height':<12} not stated")
 
@@ -123,12 +127,15 @@ def emit_code(key: str, spec: dict) -> None:
           f">= {spec['dpi_min']} dpi")
     print(f"with cns.settings.context(title_fontsize={title}, "
           f"legend_fontsize={legend}, savefig_dpi={dpi}):")
-    print(f"    mp = cns.multipanel(max_width={mm_to_px(widest)})"
+    print(f'    mp = cns.multipanel(max_width={widest}, unit="mm")'
           f"  # {widest} mm, widest column")
     print(f'    ax = mp.panel("{"a" if lower else "A"}", 240, 150)'
           f"  # {spec['panel_labels']}")
     print("    ...")
-    print('    cns.savefig("figure1.pdf")  # vector keeps text editable')
+    print('    # bbox_inches=None keeps the full canvas; default tight cropping')
+    print('    # would save narrower than the column width above.')
+    print('    cns.savefig("figure1.pdf", bbox_inches=None)'
+          '  # vector keeps text editable')
 
 
 def main() -> int:
@@ -153,7 +160,7 @@ def main() -> int:
             describe(key, JOURNALS[key])
 
     if not args.code:
-        print("\nWidths are pixels at 72/inch: mm = px / 72 * 25.4")
+        print("\nWidths are points at 72/inch: mm = pt / 72 * 25.4")
         print("Sources and caveats: references/journal-specs.md")
     return 0
 

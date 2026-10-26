@@ -20,9 +20,12 @@ The exact rcParams involved, and the rules for not defeating them, are in
 | scanpy / plotnine defaults | `cns.setup_scanpy()`, `cns.setup_ggplot()` | no |
 
 `cns.figure()` applies the entire style, not just a size. After
-`setup_matplotlib()`, a subsequent `cns.figure()` changes zero further rcParams,
-so calling both is redundant, not additive. Both return `None`: reach the figure
-with `plt.gcf()`.
+`setup_matplotlib()`, a subsequent `cns.figure()` changes zero further rcParams
+(measured on 0.8.0: 0 keys differ), so calling both is redundant, not additive.
+`figure()` returns the styled `Figure` and makes it current, so
+`ax = cns.figure(width=220, height=160).gca()` works. `setup_matplotlib()`,
+`setup_ax()`, and `setup_scanpy()` return `None`; `setup_ggplot()` is the odd one
+out and returns an R `theme()` code string, modifying nothing in matplotlib.
 
 ## Pattern 1: cnsplots canvas, matplotlib drawing
 
@@ -37,8 +40,7 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import cnsplots as cns
 
-cns.figure(width=220, height=160)
-ax = plt.gca()
+ax = cns.figure(width=220, height=160).gca()       # plt.gca() also works
 
 ax.plot(t, mean)                                  # prop_cycle picks the color
 ax.fill_between(t, lo, hi, color=cns.BLUE, alpha=0.15, linewidth=0)
@@ -76,9 +78,11 @@ fig.tight_layout()
 cns.savefig("subplots.svg")
 ```
 
-Dividing by 72 keeps the pixel convention consistent with `cns.figure()`; pass
+Dividing by 72 keeps the point convention consistent with `cns.figure()`; pass
 `dpi=144` to match `settings.figure_dpi`. Every cnsplots plot function accepts
-`ax=` as a keyword argument, so they compose into any matplotlib layout.
+`ax=` as a keyword argument, so they compose into any matplotlib layout. On 0.8.0
+you can skip the arithmetic: `fig = cns.figure(width=340, height=240)` then
+`fig.subplots(2, 2)` gives the same canvas with the style already applied.
 
 ## Pattern 3: retrofit axes from another library
 

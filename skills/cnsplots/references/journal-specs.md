@@ -1,27 +1,45 @@
 # Journal figure specifications
 
 Figure requirements for Cell Press, Nature, and Science, with the `cnsplots`
-pixel values that satisfy them. Read from the publishers' own author pages in
+point values that satisfy them. Read from the publishers' own author pages in
 September 2026; sources at the bottom.
 
 **These are moving targets.** Verify against the journal's current page before
 submitting, and check the specific journal rather than the family: sibling titles
 diverge materially (see "Sibling journals differ" below).
 
-`cnsplots` sizes are pixels at 72 per inch, so `mm = px / 72 * 25.4` and
-`px = mm / 25.4 * 72`.
+`cnsplots` sizes are **points** (1/72 inch, the 0.8.0 size unit), so
+`mm = pt / 72 * 25.4` and `pt = mm / 25.4 * 72`.
 
 ## Column widths
 
 | | Cell Press | Nature | Science |
 | --- | --- | --- | --- |
-| 1 column | 85 mm / **241 px** | 89 mm / **252 px** | 57 mm / **162 px** |
-| 1.5 column | 114 mm / **323 px** | 120-136 mm / **340-386 px** | — |
-| 2 column | 174 mm / **493 px** | 183 mm / **519 px** | 121 mm / **343 px** |
-| 3 column (full page) | — | — | 184 mm / **522 px** |
-| Max height | 200 mm / **567 px** | 170 mm / **482 px** | not stated |
+| 1 column | 85 mm / **241 pt** | 89 mm / **252 pt** | 57 mm / **162 pt** |
+| 1.5 column | 114 mm / **323 pt** | 120-136 mm / **340-386 pt** | — |
+| 2 column | 174 mm / **493 pt** | 183 mm / **519 pt** | 121 mm / **343 pt** |
+| 3 column (full page) | — | — | 184 mm / **522 pt** |
+| Max height | 200 mm / **567 pt** | 170 mm / **482 pt** | not stated |
 
-Verified: `cns.multipanel(max_width=519)` produces a figure 183.1 mm wide.
+Verified on 0.8.0: `cns.multipanel(max_width=519)` produces a canvas 183.09 mm
+wide. Every pt value above is `mm / 25.4 * 72` rounded to the nearest integer.
+
+**Those are canvas widths, not artifact widths.** The default save crops to the
+artists (`savefig_bbox="tight"`, `pad_inches=0.01`), so a 519-pt canvas whose only
+content is one 240x150 panel saves at about **93 mm**, half the column — and the
+exact figure moves with the panel's content, because the crop follows the
+artists. Measured on 0.8.0 at 288 dpi, `cns.multipanel(max_width=519)` plus
+`mp.panel("a", 240, 150)`:
+
+| Panel content | Tight save | `bbox_inches=None` |
+| --- | --- | --- |
+| empty | 1054 px / 92.96 mm | 2076 px / 183.09 mm |
+| `cns.boxplot(tips, x="day", y="total_bill")` | 1064 px / 93.84 mm | 2076 px / 183.09 mm |
+
+The full-canvas save is stable at the canvas width; the tight one is not. For
+submission, when the printed width must equal the column width, pass
+`cns.savefig(path, bbox_inches=None)` and size the canvas to the column;
+otherwise the tight crop silently delivers roughly half the width you configured.
 
 Science counts the printed page as three columns, so its "2 column" is a
 mid-width figure, not full width. Its full width (184 mm) is within a millimetre
@@ -93,14 +111,14 @@ All three converge on one instruction: **do not pair red and green.**
 
 Nature's Wong palette, published with hex values: `#000000` black, `#e69f00`
 orange, `#56b4e9` sky blue, `#009e73` bluish green, `#f0e442` yellow, `#0072b2`
-blue, `#d55e00` vermillion, `#cc79a7` reddish purple.
+blue, `#d55e00` vermillion, `#cc79a7` reddish purple. 0.8.0 ships it as
+`cns.palettes("OkabeIto")` — the same eight hexes, but black moved to the end
+(`#e69f00` first), so `color_cycle="OkabeIto"` gives the published set in a
+different order. Reorder explicitly if the first series must be black.
 
-Nature's Wong palette, published with hex values: `#000000` black, `#e69f00`
-orange, `#56b4e9` sky blue, `#009e73` bluish green, `#f0e442` yellow, `#0072b2`
-blue, `#d55e00` vermillion, `#cc79a7` reddish purple.
-
-`cnsplots` ships `Cell`, `Nature`, `Science`, and `NEJM` palettes, but these are
-journal-*styled* palettes, not the publishers' accessibility recommendations. The
+`cnsplots` ships `Cell`, `Nature`, `Science`, `NEJM`, `Lancet`, `JAMA`, `JCO`,
+`OkabeIto`, `TolBright`, and `TolMuted`, but the four journal-*named* ones are
+styled after those journals, not the publishers' accessibility recommendations. The
 `Science` palette contains `#ee0000` red and `#008b45` green at entries 1 and 2,
 adjacent in the cycle, which the journal's own guidance says not to pair. **Do not
 assume a palette named after a journal satisfies that journal's colour advice.**
@@ -116,7 +134,7 @@ that collapse to within 1 L* in greyscale (e.g. data values 0.19 and 0.43 render
 at L* 97.5 and 98.2). `viridis` is strictly monotonic (all 63 steps ascending) with
 CV 0.07 and zero greyscale collisions. Override at script top:
 `cns.settings.palette_seq = 'viridis'`. See
-`scripts/recommended_overrides.py`.
+`$SKILL_DIR/scripts/recommended_overrides.py`.
 
 ## Statistics in legends
 
@@ -141,13 +159,20 @@ statistical integrity section of `SKILL.md`.
 Apply with `cns.settings.context(...)` so the change is scoped. Widths go to
 `max_width` on `multipanel`, or `width` on `cns.figure`.
 
+**The context only reaches matplotlib if `cns.figure()` or
+`cns.setup_matplotlib()` runs inside the block.** Verified on 0.8.0: a block that
+only assigns settings and exits leaves `axes.labelsize` at `medium` and
+`savefig.dpi` at `figure`. Calling `cns.figure()` or `mp.panel(...)` inside the
+block applies them, and everything reverts on exit. `cns.multipanel(...)` on its
+own does *not* apply them — the first `mp.panel()` call does.
+
 ```python
 # Nature: 7 pt type cap, 300+ dpi, double column
 with cns.settings.context(title_fontsize=7, legend_fontsize=6, savefig_dpi=600):
-    mp = cns.multipanel(max_width=519)          # 183 mm
+    mp = cns.multipanel(max_width=519)          # 183 mm canvas
     ax = mp.panel("a", 240, 150)                # lowercase labels
     ...
-    cns.savefig("figure1.pdf")                  # vector, editable
+    cns.savefig("figure1.pdf", bbox_inches=None)   # keep the 183 mm canvas
 
 # Cell Press: defaults already fit 6-8 pt; only dpi needs raising
 with cns.settings.context(savefig_dpi=500):
@@ -158,11 +183,18 @@ with cns.settings.context(title_fontsize=7, legend_fontsize=5, savefig_dpi=600):
     cns.figure(width=162, height=140)           # 57 mm
 ```
 
-Verified: `settings.context(title_fontsize=7, legend_fontsize=6)` sets
+Verified on 0.8.0: `settings.context(title_fontsize=7, legend_fontsize=6)` sets
 `axes.labelsize`, `axes.titlesize` to 7.0 and `legend.fontsize` to 6.0, and
 restores on exit. `savefig_dpi=600` reaches `rcParams["savefig.dpi"]`.
 `mp.panel("a", ...)` accepts lowercase labels and `mp.get_axes("a")` retrieves
-them.
+them. The three presets produce canvases of 183.09 mm (`max_width=519`),
+173.92 mm (`max_width=493`), and 57.15 mm (`figure(width=162)`).
+
+Without `bbox_inches=None` the Nature preset does **not** save at 183 mm. With a
+tips boxplot in the single 240x150 panel it saves at 92.96 mm (2196 px at 600
+dpi), and at 91.99 mm with the panel left empty; `bbox_inches=None` gives the full
+183.09 mm (4325 px). The exact tight width tracks the artists, so check the saved
+PNG rather than assuming the canvas number.
 
 The installed `settings.multipanel_max_width=540` (190.5 mm) exceeds all three
 journals' widest columns (Cell 174, Nature 183, Science 184). It is a canvas upper
@@ -170,8 +202,8 @@ bound rather than a target size, so exceeding it does not automatically violate 
 journal requirement, but the default does not guide toward compliance. Set it
 explicitly for the target journal.
 
-`scripts/journal_preset.py` prints these numbers for a named journal so you do
-not have to transcribe them.
+`python3 $SKILL_DIR/scripts/journal_preset.py` prints these numbers for a named
+journal so you do not have to transcribe them.
 
 ## Sibling journals differ
 
