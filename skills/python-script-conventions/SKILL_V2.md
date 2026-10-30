@@ -3,7 +3,6 @@ name: python-script-conventions
 description: Use when generating, modifying, or reviewing Python scripts (3.12+). Enforces Functional Core / Imperative Shell architecture, fail-fast boundary validation, trusted core execution (anti-bloat), native pandas/numpy vectorized idioms, and deterministic quality gates (Ruff + ty). Load whenever creating or editing a .py file — especially for data processing and scientific workflows.
 version: 2.0.0
 ---
-
 # Python Script Conventions: Architecture, Anti-Bloat & Reviewability (Python 3.12+)
 
 ## 1. Core Philosophy: The Reviewability Sweet Spot
@@ -21,6 +20,7 @@ In agentic software engineering, generating code is fast, but human code review 
 ```
 
 **The Reviewability Sweet Spot** demands **Declarative Step-by-Step Code**:
+
 - **Predictable Macro-Architecture**: A standard two-layer model separating the I/O Shell from the Pure Core.
 - **Fail-Fast Boundary Contract**: Inputs and schemas are verified once at the threshold. Core computation is a 100% Trusted Zone.
 - **Moderate Transformation Granularity**: Each logical transformation takes 1–3 readable lines using descriptive intermediate names or named boolean masks.
@@ -43,7 +43,7 @@ These rules are non-negotiable. Every rule directly maps to a deterministic lint
 7. **Type Hints on All Function Signatures**: Annotate all arguments and explicit return types (`-> None` for side-effect procedures).
 8. **Single-Line Function Docstrings**: Let type hints document parameter types. Keep function docstrings to a concise, high-signal single line describing the business intent.
 9. **`pathlib.Path` Everywhere**: Never use `os.path` functions or manual string concatenation for filesystem paths.
-10. **Immutable Configuration Objects**: Use `@dataclass(kw_only=True, frozen=True)` for runtime configuration. Leave `slots=False` (default) to avoid unnecessary inheritance friction and mocking issues.
+10. **Immutable Configuration Objects**: Use `@dataclass(kw_only=True, frozen=True)` for runtime configuration (named `Config`, or domain-specific variants like `AnalysisConfig`, `DataConfig`, `FilterConfig`). Leave `slots=False` (default) to avoid unnecessary inheritance friction and mocking issues.
 11. **Proper Exit Code Propagation**: All CLI entry points must terminate via `if __name__ == "__main__": sys.exit(main())`, where `main() -> int` returns `0` on success and non-zero on failure.
 
 ---
@@ -52,14 +52,14 @@ These rules are non-negotiable. Every rule directly maps to a deterministic lint
 
 Do not guess whether code is clean; let deterministic tools enforce compliance before code is submitted for human review:
 
-| Design Dimension | Enforced Convention | `pyproject.toml` Rule / Gate | Enforcement Behavior & AI Remediation |
-| :--- | :--- | :--- | :--- |
-| **Complexity Ceiling** | Ban nested defensive branching & pyramids | `C901` (`max-complexity = 8`) | Ruff rejects functions with >8 execution paths. AI must flatten logic into vectorized expressions. |
-| **Function Volume** | Ban monolithic multi-responsibility scripts | `PLR09` (`max-args = 20`, `max-branches = 10`, `max-returns = 4`, `max-statements = 40`) | Excess branches or returns fail linting. Forces bundling parameters into `Config` and using lookup tables. |
-| **Architecture Boundaries** | Enforce file-scope imports only | `PLC0415` (`import-outside-top-level`) | Rejects imports hidden inside function bodies. |
-| **API Bans** | Strict ban on `print`, `logging`, and `os.path` | `T201` (`print`), `PTH` (`pathlib`), `TID251` (`banned-api`) | Rejects deprecated APIs with explicit instructions (e.g., use `loguru.logger`, use `pathlib.Path`). |
-| **Modern Syntax** | Modern Python 3.12+ syntax standards | `UP` (`pyupgrade`), `B` (`flake8-bugbear`) | Rejects legacy `Optional[T]` / `Union[X, Y]` in favor of `T \| None` and `X \| Y`; flags mutable default args. |
-| **Type Integrity** | Guarantee typed contracts and catch cast bloat | `ANN` (`annotations`), `ty check` | Fails on missing signatures or type mismatches. Flags unnecessary defensive `typing.cast()` calls. |
+| Design Dimension                  | Enforced Convention                                   | `pyproject.toml` Rule / Gate                                                                     | Enforcement Behavior & AI Remediation                                                                                |
+| :-------------------------------- | :---------------------------------------------------- | :------------------------------------------------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------------- |
+| **Complexity Ceiling**      | Ban nested defensive branching & pyramids             | `C901` (`max-complexity = 8`)                                                                  | Ruff rejects functions with >8 execution paths. AI must flatten logic into vectorized expressions.                   |
+| **Function Volume**         | Ban monolithic multi-responsibility scripts           | `PLR09` (`max-args = 20`, `max-branches = 10`, `max-returns = 4`, `max-statements = 40`) | Excess branches or returns fail linting. Forces bundling parameters into `Config` and using lookup tables.         |
+| **Architecture Boundaries** | Enforce file-scope imports only                       | `PLC0415` (`import-outside-top-level`)                                                         | Rejects imports hidden inside function bodies.                                                                       |
+| **API Bans**                | Strict ban on `print`, `logging`, and `os.path` | `T201` (`print`), `PTH` (`pathlib`), `TID251` (`banned-api`)                           | Rejects deprecated APIs with explicit instructions (e.g., use `loguru.logger`, use `pathlib.Path`).              |
+| **Modern Syntax**           | Modern Python 3.12+ syntax standards                  | `UP` (`pyupgrade`), `B` (`flake8-bugbear`)                                                 | Rejects legacy `Optional[T]` / `Union[X, Y]` in favor of `T \| None` and `X \| Y`; flags mutable default args. |
+| **Type Integrity**          | Guarantee typed contracts and catch cast bloat        | `ANN` (`annotations`), `ty check`                                                            | Fails on missing signatures or type mismatches. Flags unnecessary defensive `typing.cast()` calls.                 |
 
 ---
 
@@ -71,7 +71,7 @@ Instead of rigid comment banners, organize all scripts according to the **Functi
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │ 1. IMPERATIVE SHELL (Outer Boundary)                                        │
 │    - CLI argument parsing (parse_args)                                      │
-│    - Environment & configuration setup (AppConfig)                          │
+│    - Environment & configuration setup (Config / AnalysisConfig)            │
 │    - I/O: Reading raw files & Fail-Fast Schema Validation (set difference)  │
 │    - Writing output artifacts & Exit Code Propagation                       │
 └──────────────────────────────────────┬──────────────────────────────────────┘
@@ -88,6 +88,7 @@ Instead of rigid comment banners, organize all scripts according to the **Functi
 ```
 
 ### 3.1 Standalone Script vs. Reusable Module
+
 * **Standalone Script**: Contains both the **Functional Core** (pure data transformation functions) and the **Imperative Shell** (`parse_args()`, boundary validation, and `main()`).
 * **Library / Utility Module**: Contains only the **Functional Core** and shared constants. It omits CLI parsing, logging setup, and `if __name__ == "__main__"`. Any function in a standalone script's core is inherently designed to be extracted into a library module without modifying its logic.
 
@@ -96,7 +97,9 @@ Instead of rigid comment banners, organize all scripts according to the **Functi
 Maintain a predictable top-to-bottom dependency hierarchy:
 
 ```python
-# 1. IMPORTS (Standard library -> Third-party -> Local project)
+# =============================================================================
+# 1. IMPORTS (Standard Library -> Third-Party -> Local Project)
+# =============================================================================
 import argparse
 from dataclasses import dataclass
 from enum import StrEnum
@@ -107,7 +110,9 @@ import numpy as np
 import pandas as pd
 from loguru import logger
 
-# 2. CONSTANTS & ENUMS (Domain markers, column name definitions)
+# =============================================================================
+# 2. CONSTANTS & ENUMS (Domain Markers, Column Definitions)
+# =============================================================================
 class DataCol(StrEnum):
     GENE_ID = "gene_id"
     PVALUE = "p_value"
@@ -116,17 +121,21 @@ class DataCol(StrEnum):
 
 REQUIRED_COLUMNS = [DataCol.GENE_ID, DataCol.PVALUE, DataCol.LOG2FC]
 
-# 3. CONFIGURATION (Immutable parameter container)
+# =============================================================================
+# 3. CONFIGURATION (Immutable Parameter Container)
+# =============================================================================
 @dataclass(kw_only=True, frozen=True)
-class AppConfig:
-    """Immutable runtime configuration container."""
+class Config:
+    """Immutable runtime configuration container for data processing."""
     input_path: Path
     output_dir: Path
     p_value_threshold: float = 0.05
     log2fc_cutoff: float = 1.0
 
-# 4. FUNCTIONAL CORE (Pure, trusted transformation functions)
-def annotate_hits(df: pd.DataFrame, config: AppConfig) -> pd.DataFrame:
+# =============================================================================
+# 4. FUNCTIONAL CORE (Pure, Trusted Transformation Functions)
+# =============================================================================
+def annotate_hits(df: pd.DataFrame, config: Config) -> pd.DataFrame:
     """Annotate significant hits using named boolean masks and vectorized assignment."""
     if df.empty:
         return df
@@ -138,7 +147,9 @@ def annotate_hits(df: pd.DataFrame, config: AppConfig) -> pd.DataFrame:
         **{DataCol.STATUS: np.where(is_sig & is_strong, "hit", "non_hit")}
     )
 
-# 5. IMPERATIVE SHELL (Boundary validation, I/O orchestration, CLI entry point)
+# =============================================================================
+# 5. IMPERATIVE SHELL (Boundary Validation, I/O Orchestration, CLI Entry Point)
+# =============================================================================
 def parse_args() -> argparse.Namespace:
     """Parse command-line arguments."""
     parser = argparse.ArgumentParser(description="Process bioinformatics hits.")
@@ -149,7 +160,7 @@ def parse_args() -> argparse.Namespace:
 def main() -> int:
     """Orchestrate I/O boundary, validate schema, and execute functional core."""
     args = parse_args()
-    config = AppConfig(input_path=args.input.resolve(), output_dir=args.output_dir.resolve())
+    config = Config(input_path=args.input.resolve(), output_dir=args.output_dir.resolve())
     config.output_dir.mkdir(parents=True, exist_ok=True)
 
     try:
@@ -203,41 +214,59 @@ def setup_logger(verbose: bool = False) -> None:
 ```
 
 Standalone scripts simply import and call:
+
 ```python
 from utils.logging import setup_logger
 ```
 
 ### 4.2 Reusable Decorators (`src/utils/decorators.py`)
 
-When repetitive cross-cutting patterns appear across 3+ functions or scripts (e.g., performance timing, automatic retry, standardized boundary exception logging), encapsulate them in clean, type-preserving decorators.
+When repetitive cross-cutting observability or formatting patterns appear across **3+** analysis functions or scripts (e.g., logging filter row-count deltas or standardized boundary error mapping), encapsulate them in clean, type-preserving decorators under `src/utils/decorators.py`.
 
 ```python
 # src/utils/decorators.py
 from collections.abc import Callable
 import functools
-import time
-from typing import Any, ParamSpec, TypeVar
+from typing import ParamSpec
+import pandas as pd
 from loguru import logger
 
 P = ParamSpec("P")
-R = TypeVar("R")
 
-def timeit(func: Callable[P, R]) -> Callable[P, R]:
-    """Log the wall-clock execution time of a function."""
+def log_filter_step(func: Callable[P, pd.DataFrame]) -> Callable[P, pd.DataFrame]:
+    """Log DataFrame row retention metrics before and after a transformation step."""
     @functools.wraps(func)
-    def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
-        start_time = time.perf_counter()
+    def wrapper(*args: P.args, **kwargs: P.kwargs) -> pd.DataFrame:
+        df_in = next((arg for arg in args if isinstance(arg, pd.DataFrame)), None)
         result = func(*args, **kwargs)
-        duration = time.perf_counter() - start_time
-        logger.debug(f"{func.__name__} executed in {duration:.3f}s")
+        if df_in is not None:
+            n_in, n_out = len(df_in), len(result)
+            dropped = n_in - n_out
+            pct = (n_out / n_in * 100) if n_in > 0 else 0.0
+            logger.info(
+                f"[{func.__name__}] {n_in:,} -> {n_out:,} rows (dropped {dropped:,}, {pct:.1f}% kept)"
+            )
         return result
     return wrapper
 ```
 
-**Decorator Rules of Engagement**:
-1. **Always use `functools.wraps`**: Preserves function names, signatures, and docstrings for type checkers and linters.
-2. **Preserve Type Signatures**: Use `ParamSpec` and `TypeVar` so static checkers (`ty`, `mypy`) do not lose parameter hints.
-3. **No Single-Use Abstractions**: Never create a custom decorator for a single function. Use decorators only when encapsulating shared infrastructure across multiple modules.
+Example usage in an analysis pipeline:
+```python
+from utils.decorators import log_filter_step
+
+@log_filter_step
+def filter_quality_variants(df: pd.DataFrame, config: Config) -> pd.DataFrame:
+    """Filter genetic variants by quality threshold and read depth."""
+    is_qual = df[DataCol.QUAL] >= config.min_qual
+    is_covered = df[DataCol.DEPTH] >= config.min_depth
+    return df.loc[is_qual & is_covered].copy()
+```
+
+> [!IMPORTANT]
+> **Strict Guardrails for AI: Decorators are Strictly Optional & Shared**
+> 1. **Never inject decorators by default**: Standard standalone analysis scripts do NOT need custom decorators. Write simple, direct functions first.
+> 2. **No single-use abstractions**: If a decorator is only used on 1 or 2 functions, do NOT create it. Inline the logic. Decorators belong strictly in shared modules (`src/utils/decorators.py`) when eliminating repetitive boilerplate across 3+ pipeline functions.
+> 3. **Preserve type signatures**: Always use `functools.wraps` and `ParamSpec` to preserve type safety and signature hints.
 
 ---
 
@@ -246,6 +275,7 @@ def timeit(func: Callable[P, R]) -> Callable[P, R]:
 The single most effective weapon against AI code bloat is the strict separation between the **I/O Boundary** and the **Trusted Core**.
 
 ### 5.1 The Fail-Fast Boundary Contract (I/O Shell)
+
 At the outer boundary (`main()` or dedicated `load_*` functions), assume external input is untrusted and messy. Verify paths, formats, and required columns ONCE:
 
 ```python
@@ -257,7 +287,9 @@ if missing_cols:
 ```
 
 ### 5.2 The 100% Trusted Core Execution Zone
+
 Once data passes the boundary validation, core transformation functions treat the DataFrame as a **100% Trusted Zone**:
+
 * **Assume Valid Schema**: NEVER write `if col in df.columns:`, `if isinstance(...)`, or `.get()` fallbacks inside core transformation functions.
 * **Strict Column Scoping**: NEVER clean, fill, cast, or rename columns not required by the requested calculation. Leave unmentioned columns untouched.
 * **Fail Fast**: If unexpected nulls or invalid types occur in trusted core calculations, let the code fail immediately so the root cause is exposed.
@@ -266,7 +298,7 @@ Once data passes the boundary validation, core transformation functions treat th
 
 ```python
 # ❌ BAD: Paranoid defensive checking inside core logic (AI Bloat)
-def calculate_enrichment(df: pd.DataFrame, config: AppConfig) -> pd.DataFrame:
+def calculate_enrichment(df: pd.DataFrame, config: Config) -> pd.DataFrame:
     """Calculate enrichment scores."""
     if df is None or df.empty:
         return pd.DataFrame()
@@ -279,7 +311,7 @@ def calculate_enrichment(df: pd.DataFrame, config: AppConfig) -> pd.DataFrame:
     ...
 
 # ✅ GOOD: Trusted Core logic (High-signal & clean)
-def calculate_enrichment(df: pd.DataFrame, config: AppConfig) -> pd.DataFrame:
+def calculate_enrichment(df: pd.DataFrame, config: Config) -> pd.DataFrame:
     """Calculate enrichment scores."""
     # Guard clause permitted ONLY for legitimate semantic data states (e.g. 0 rows from filter)
     if df.empty:
@@ -297,6 +329,7 @@ def calculate_enrichment(df: pd.DataFrame, config: AppConfig) -> pd.DataFrame:
 Reviewable data transformation code tells a clear scientific story. Follow these guidelines to maintain optimal review granularity.
 
 ### 6.1 Named Boolean Masks for Complex Conditions
+
 Do not bury multiple conditional expressions in a single unreadable line. Assign each distinct domain condition to a self-documenting boolean Series:
 
 ```python
@@ -315,16 +348,17 @@ df_hits = df.loc[is_significant & has_strong_effect & has_sufficient_coverage].c
 
 Never write custom row-wise iteration functions combined with `.apply(axis=1)` or `.iterrows()`. Use native vectorized alternatives:
 
-| Transformation Pattern | ❌ Prohibited Anti-Pattern | ✅ Idiomatic Vectorized Operator |
-| :--- | :--- | :--- |
-| **Binary Classification** | `def _check(row): ...`<br/>`df.apply(_check, axis=1)` | `np.where(condition, "hit", "non_hit")` |
-| **Multi-Condition Branching** | Long `if-elif-else` helper with `.apply(axis=1)` | `np.select(condlist, choicelist, default="other")` |
-| **Continuous Binning** | Custom conditional function checking ranges | `pd.cut(df[col], bins=[...], labels=[...])` |
-| **Value / Dictionary Mapping** | Iterating over rows to translate keys | `df[col].map(mapping_dict)` or `.replace()` |
-| **Groupwise Broadcast** | Iterating over groups to attach aggregate values | `df.groupby("group")["val"].transform("median")` |
-| **Set Membership** | `df[col].apply(lambda x: x in valid_set)` | `df[col].isin(valid_set)` |
+| Transformation Pattern               | ❌ Prohibited Anti-Pattern                           | ✅ Idiomatic Vectorized Operator                     |
+| :----------------------------------- | :--------------------------------------------------- | :--------------------------------------------------- |
+| **Binary Classification**      | `def _check(row): ...df.apply(_check, axis=1)`     | `np.where(condition, "hit", "non_hit")`            |
+| **Multi-Condition Branching**  | Long `if-elif-else` helper with `.apply(axis=1)` | `np.select(condlist, choicelist, default="other")` |
+| **Continuous Binning**         | Custom conditional function checking ranges          | `pd.cut(df[col], bins=[...], labels=[...])`        |
+| **Value / Dictionary Mapping** | Iterating over rows to translate keys                | `df[col].map(mapping_dict)` or `.replace()`      |
+| **Groupwise Broadcast**        | Iterating over groups to attach aggregate values     | `df.groupby("group")["val"].transform("median")`   |
+| **Set Membership**             | `df[col].apply(lambda x: x in valid_set)`          | `df[col].isin(valid_set)`                          |
 
 ### 6.3 Declarative Step-by-Step Pipelines
+
 Keep each step to 1–3 lines. When chaining operations, format multi-line `.assign()` blocks cleanly (leveraging Ruff's trailing comma convention) or assign intermediate DataFrames with descriptive domain names:
 
 ```python
@@ -346,6 +380,7 @@ df_annotated = (
 ## 7. Hygiene & Modern Infrastructure
 
 ### 7.1 Deterministic Dynamic Path Resolution
+
 When a script lives in `scripts/` or a subfolder and needs to import from `src/`, configure paths dynamically without relying on the current working directory:
 
 ```python
@@ -364,18 +399,20 @@ from utils.logging import setup_logger  # noqa: E402
 ```
 
 ### 7.2 Immutable Configurations with Standard Dataclasses
+
 Use `@dataclass(kw_only=True, frozen=True)`. Do NOT set `slots=True` by default:
 
 ```python
 @dataclass(kw_only=True, frozen=True)
-class AppConfig:
-    """Runtime configuration container."""
+class Config:
+    """Runtime configuration container (can also be named AnalysisConfig, FilterConfig, etc.)."""
     input_path: Path
     output_dir: Path
     min_reads: int = 10
 ```
 
 ### 7.3 Concise Single-Line Docstrings
+
 Because every function signature must carry comprehensive type hints, do not duplicate type information in verbose multi-line Sphinx/NumPy docstring blocks:
 
 ```python
@@ -410,14 +447,14 @@ def compute_metrics(df: pd.DataFrame, cutoff: float) -> pd.DataFrame:
 
 ### 8.1 Common Anti-Patterns vs. Recommended Practices
 
-| Anti-Pattern (What to Avoid) | Root Cause / AI Bias | Recommended Practice |
-| :--- | :--- | :--- |
-| **Defensive checking in core functions** (`if col in df:`) | AI fear of runtime exceptions | Move all schema checks to I/O entry point (`set(cols) - set(df.columns)`). Keep core functions 100% trusted. |
-| **Speculative column cleaning** (`df.fillna()` on unused cols) | AI assumes all columns are dirty | Touch, validate, and transform ONLY columns required for the requested calculation. |
-| **Row-wise helpers with `.apply(axis=1)`** | AI defaults to conversational loop logic | Use `np.where()`, `np.select()`, or `.map()`. |
-| **Nested `if-else` cascades (Cyclomatic Complexity > 8)** | AI stacks condition on condition | Break into named boolean masks or declarative signal mapping tables. |
-| **Local imports inside functions** | Lazy patching without inspecting file top | All imports must reside in the top-level IMPORTS section (`PLC0415`). |
-| **Monolithic functions (>40 statements)** | Dumping all workflow logic into one block | Separate Imperative Shell (`main()`) from Functional Core (`df -> df`). |
+| Anti-Pattern (What to Avoid)                                           | Root Cause / AI Bias                      | Recommended Practice                                                                                           |
+| :--------------------------------------------------------------------- | :---------------------------------------- | :------------------------------------------------------------------------------------------------------------- |
+| **Defensive checking in core functions** (`if col in df:`)     | AI fear of runtime exceptions             | Move all schema checks to I/O entry point (`set(cols) - set(df.columns)`). Keep core functions 100% trusted. |
+| **Speculative column cleaning** (`df.fillna()` on unused cols) | AI assumes all columns are dirty          | Touch, validate, and transform ONLY columns required for the requested calculation.                            |
+| **Row-wise helpers with `.apply(axis=1)`**                     | AI defaults to conversational loop logic  | Use `np.where()`, `np.select()`, or `.map()`.                                                            |
+| **Nested `if-else` cascades (Cyclomatic Complexity > 8)**      | AI stacks condition on condition          | Break into named boolean masks or declarative signal mapping tables.                                           |
+| **Local imports inside functions**                               | Lazy patching without inspecting file top | All imports must reside in the top-level IMPORTS section (`PLC0415`).                                        |
+| **Monolithic functions (>40 statements)**                        | Dumping all workflow logic into one block | Separate Imperative Shell (`main()`) from Functional Core (`df -> df`).                                    |
 
 ---
 
