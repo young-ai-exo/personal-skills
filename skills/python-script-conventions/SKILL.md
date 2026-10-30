@@ -1,12 +1,12 @@
 ---
 name: python-script-conventions
-description: Use when generating, modifying, or reviewing Python scripts (3.12+). Specifies section layout, import ordering (including project module imports via Path(__file__)), type system, logging, dataclass patterns, and AI-agent-friendly design principles. Load this skill whenever creating or editing a .py file — especially for bioinformatics/data-science scripts.
-version: 1.6.0
+description: Use when generating, modifying, or reviewing Python scripts (3.12+). Specifies section layout, boundary validation vs. trusted core (anti-bloat), DataFrame transformation reviewability patterns, import ordering (including project module imports via Path(__file__)), type system, logging, dataclass patterns, and AI-agent-friendly design principles. Load this skill whenever creating or editing a .py file — especially for bioinformatics/data-science scripts.
+version: 1.7.0
 author: Yusheng Yang
 license: MIT
 metadata:
   hermes:
-    tags: [python, conventions, style-guide, code-quality, ai-design]
+    tags: [python, conventions, style-guide, code-quality, ai-design, anti-bloat]
     related_skills: [plan, writing-plans, test-driven-development, project-scaffolding, systematic-debugging]
 ---
 
@@ -14,11 +14,16 @@ metadata:
 
 ## Overview
 
-This skill defines the coding standards and design patterns to follow when generating or modifying Python scripts in this workspace. It codifies a consistent layout, modern Python 3.12+ idioms, and AI-agent-friendly design so that every script reads like it belongs to the same codebase.
+This skill defines the coding standards, anti-bloat guidelines, and design patterns to follow when generating or modifying Python scripts in this workspace. It codifies a consistent layout, modern Python 3.12+ idioms, and AI-agent-friendly design so that every script reads like it belongs to the same codebase and maximizes human code-review speed and cognitive clarity.
 
-**Domain focus:** Developed for bioinformatics data-processing workflows, but the patterns (section layout, type system, logging, dataclass config) apply to any data-science or analysis script that reads files, processes data, and writes outputs.
+**Core Philosophy (The Reviewability Sweet Spot):**
+AI coding agents naturally gravitate toward two review-taxing extremes: defensive bloat (layering paranoid `if col in df.columns`, `isinstance()`, and `.fillna()` fallbacks on every function) or cryptic code-golf (dense, deeply nested one-liners). This skill enforces the golden middle: **high-signal, declarative step-by-step code** where structure is predictable, boundary validation protects a trusted core, and data transformations are flat and readable.
 
-The companion file `$SKILL_DIR/templates/agent_script_template.py` provides a concrete reference implementation of these principles. **Always open that template as a starting point when writing a new script from scratch.**
+**Domain focus:** Developed for bioinformatics data-processing workflows, but the patterns (section layout, boundary contracts, vectorized pipelines, type system, logging, dataclass config) apply to any data-science or analysis script that reads files, processes data, and writes outputs.
+
+The companion files:
+- `$SKILL_DIR/templates/agent_script_template.py` provides a concrete reference implementation of these principles. **Always open that template as a starting point when writing a new script from scratch.**
+- `$SKILL_DIR/templates/pyproject.toml` provides the reference configuration for deterministic linter and type-checker gates (`ruff` + `ty`).
 
 Apply these rules thoughtfully — if a rule would make a particular script worse, adapt accordingly.
 
@@ -27,7 +32,10 @@ Apply these rules thoughtfully — if a rule would make a particular script wors
 ## Hard Rules
 
 - **All imports in the top-level IMPORTS section** — never in function bodies or class definitions
-- **Project module imports via `Path(__file__).parent.resolve()`** — avoid hardcoded workflow paths (see §1.4)
+- **Project module imports via `Path(__file__).resolve().parent` + `sys.path.insert(0, ...)`** — avoid hardcoded workflow paths and guarantee local-first import priority (see §1.4)
+- **Fail-Fast boundary contract** — validate file paths and required DataFrame `StrEnum` columns ONCE at the I/O boundary (`load_*` or `main()`); treat all `CORE LOGIC` functions as a 100% Trusted Zone with zero defensive checks (`if col in df.columns:`, `isinstance()`, or `.get()` fallbacks)
+- **Strict column scoping** — touch, validate, cast, or transform ONLY the DataFrame columns explicitly required by the prompt; leave all other columns completely untouched
+- **Native vectorized idioms** — use built-in `pandas` and `numpy` vectorized methods (`np.where`, `np.select`, `pd.cut`, `.isin`, `.map`, `.groupby().transform()`) instead of custom row-wise helper functions, `.apply(axis=1)`, or Python `for` loops over rows
 - **Use `loguru` exclusively** — no `print()` or stdlib `logging`
 - **Type hints on every function signature** — both parameters and return value
 - **Single-line docstrings** — type hints carry the type information
@@ -45,7 +53,7 @@ Apply these rules thoughtfully — if a rule would make a particular script wors
 
 ### 2. Start from the template
 
-Copy `$SKILL_DIR/templates/agent_script_template.py` as your starting point. The template demonstrates every pattern described below.
+Copy `$SKILL_DIR/templates/agent_script_template.py` as your starting point. The template demonstrates every pattern described below. If starting in a project lacking quality gate configs, copy `$SKILL_DIR/templates/pyproject.toml` to the project root.
 
 ### 3. Fill sections in dependency order
 
@@ -53,17 +61,14 @@ Constants → data models → functions → CLI → main. Each section depends o
 
 ### 4. Verify before finalizing
 
-Walk the checklist in §7 against the finished file. Read the whole script top
-to bottom rather than checking items from memory — the layout rules are about
-the file as a whole, and the most commonly missed violations (an import added
-inside a function, a leftover unused import) are invisible when you only look
-at the lines you just edited.
+Walk the checklist in §7 against the finished file. Read the whole script top to bottom rather than checking items from memory — the layout rules are about the file as a whole, and the most commonly missed violations (an import added inside a function, a leftover unused import) are invisible when you only look at the lines you just edited.
 
-For the mechanical subset, lean on real tooling rather than a bespoke script:
-`ruff check` catches unused imports, imports not at top of file (E402), and
-`print` calls (T201) if you enable `flake8-print`. The rules that carry the
-most weight here — single-line docstrings, section layout, meaningful module
-docstrings — are judgement calls no linter settles for you.
+For the mechanical subset, lean on real deterministic tooling rather than bespoke scripts:
+- `ruff check` enforces unused imports (`F401`), top-level import placement (`PLC0415`), `print` ban (`T201`), pathlib enforcement (`PTH`), cyclomatic complexity ceiling (`C901` max 8), function structural size limits (`PLR09`), and banned APIs (`TID251`).
+- `ruff format --check` verifies formatting compliance.
+- `ty check` verifies static type consistency and catches redundant defensive `cast()` calls.
+
+The rules that carry the most weight here — single-line docstrings, section layout, boundary contract vs. trusted core, and high-signal readable transformations — are judgement calls guided by this skill and verified against §7.
 
 ---
 
@@ -187,8 +192,10 @@ import sys
 from pathlib import Path
 
 # Project path setup (must come before project imports)
-SCRIPT_DIR = Path(__file__).parent.resolve()
-sys.path.append(str((SCRIPT_DIR / "../../src").resolve()))
+SCRIPT_DIR = Path(__file__).resolve().parent
+SRC_DIR = SCRIPT_DIR.parent / "src"
+if str(SRC_DIR) not in sys.path:
+    sys.path.insert(0, str(SRC_DIR))
 
 # Project imports
 from io_table import read_parquet  # noqa: E402
@@ -206,8 +213,10 @@ import pandas as pd
 
 **Key points:**
 
-- Use `Path(__file__).parent.resolve()` to get the script's directory
-- Build the relative path to `src/` based on the script's location (adjust `../../src` as needed)
+- Use `Path(__file__).resolve().parent` to get the script's physical directory (resolving symlinks robustly)
+- Resolve `SRC_DIR = SCRIPT_DIR.parent / "src"` (adjusting relative depth as appropriate for the script's folder)
+- Use `sys.path.insert(0, str(SRC_DIR))` to ensure local project modules take absolute priority over any identically named third-party or system packages
+- Guard with `if str(SRC_DIR) not in sys.path:` to ensure idempotency across module reloads or interactive sessions
 - Add `# noqa: E402` to project imports — E402 (module level import not at top of file) is unavoidable here since `sys.path` must be modified first
 - This pattern stays within the IMPORTS section — it's import-related setup, not a separate section
 
@@ -412,9 +421,9 @@ This format surfaces *why* a change was needed, not just *what* changed.
 
 ## 4. Control Flow & Error Handling
 
-### Guard Clauses
+### 4.1 Guard Clauses
 
-Use guard clauses to handle edge cases early and reduce nesting:
+Use guard clauses sparingly to handle legitimate edge cases early and reduce nesting:
 
 ```python
 def filter_dataframe(df: pd.DataFrame, config: AppConfig) -> pd.DataFrame:
@@ -424,11 +433,15 @@ def filter_dataframe(df: pd.DataFrame, config: AppConfig) -> pd.DataFrame:
         logger.warning("Received empty DataFrame. Skipping filtering.")
         return df
     
-    # Main logic here
+    # Main logic here (assumes valid schema)
     ...
 ```
 
-### Match-Case Over If-Elif Chains
+> [!IMPORTANT]
+> **Use Guard Clauses for semantic data states, NEVER for schema paranoia.**
+> Only guard against valid empty inputs or zero-row filter outputs. Do NOT use guard clauses to check `if col in df.columns:` or `isinstance()` inside core logic. Schema guarantees belong at the I/O boundary.
+
+### 4.2 Match-Case Over If-Elif Chains
 
 For categorical logic with 3+ branches, use `match...case` instead of `if-elif-else`:
 
@@ -445,7 +458,7 @@ match phenotype_type:
         return None
 ```
 
-### Exception Handling
+### 4.3 Exception Handling
 
 Wrap `main()` logic in a try-except block and return non-zero on error:
 
@@ -462,6 +475,23 @@ def main() -> int:
     
     return 0
 ```
+
+### 4.4 Boundary Validation vs. Trusted Core (Anti-Bloat Rule)
+
+Do NOT scatter defensive checks across core logic functions. Enforce a strict separation between **I/O Boundary** and **Trusted Core**:
+
+1. **At the I/O Boundary (`load_*` or `main()`)**:
+   Verify file existence and check required `StrEnum` columns ONCE:
+   ```python
+   missing_cols = set(REQUIRED_COLUMNS) - set(df.columns)
+   if missing_cols:
+       raise ValueError(f"Missing required columns: {sorted(missing_cols)}")
+   ```
+
+2. **Inside `CORE LOGIC` Functions (100% Trusted Zone)**:
+   - **Assume valid schema**: Never write `if DataCol.X in df.columns:`, `isinstance()`, or `.get()` fallback logic inside core transformation functions. If inputs violate the contract, let the code fail immediately (Fail-Fast).
+   - **Use Guard Clauses sparingly**: Only guard against semantically meaningful data states (e.g., `if df.empty: return df` when an upstream filter might legitimately yield 0 rows), NEVER for schema or type paranoia.
+   - **Strict Column Scoping**: Do NOT clean, cast, `.fillna()`, or rename columns that are not directly used in the calculation or explicitly requested by the prompt. Unrelated columns must remain untouched.
 
 ---
 
@@ -489,6 +519,30 @@ For keyword-profile analysis (categorizing every word in a corpus), use exact ma
 3. Multi-word phrase pre-tokenization (convert "small colonies" → "small-colonies" before splitting)
 
 → Full pattern: [references/stem-prefix-classification.md](references/stem-prefix-classification.md)
+
+### 5.3 DataFrame Transformation & Reviewability Patterns
+
+Write DataFrame transformations at a granularity that maximizes human review speed — avoid both verbose imperative loops/helpers and cryptic 5-level nested one-liners:
+
+1. **Named Boolean Masks for Filtering & Classification**:
+   Break complex conditions into 2–4 named boolean Series with clear domain meaning before combining them:
+   ```python
+   # ✅ Easy to review: clear domain conditions with explicit names
+   is_essential = df[DataCol.FITNESS] < config.essential_cutoff
+   is_high_conf = df[DataCol.PVALUE] < config.p_value_threshold
+   df_hits = df.loc[is_essential & is_high_conf].copy()
+   ```
+
+2. **Idiomatic Vectorized APIs over Custom Helpers**:
+   Never write a custom helper function + `.apply(..., axis=1)` or `.iterrows()` when a native pandas/numpy operation exists:
+   - **Binary / multi-branch assignment** $\rightarrow$ `np.where()` or `np.select(condlist, choicelist, default=...)`
+   - **Binning continuous values** $\rightarrow$ `pd.cut()` or `pd.qcut()`
+   - **Lookup / dictionary replacement** $\rightarrow$ `.map(mapping_dict)` or `.replace()`
+   - **Group-level statistics broadcast back to rows** $\rightarrow$ `.groupby(col)[val].transform("median")`
+   - **Set membership** $\rightarrow$ `.isin(valid_set)`
+
+3. **Readable Step-by-Step Pipelines**:
+   Keep each transformation step to 1–3 lines. When chaining more than 3 operations, either assign intermediate DataFrames with descriptive names (`df_valid`, `df_normalized`, `df_summary`) or format `.assign()` / `.pipe()` with one logical column per line. Never pack 4+ operations into an unreadable one-liner.
 
 ---
 
@@ -542,6 +596,10 @@ For keyword-profile analysis (categorizing every word in a corpus), use exact ma
 
 12. **Forgetting to re-check domain-specific classification logic after expanding keyword lists.** When adding words to modifier or category keyword lists in domain-specific scripts (e.g., bioinformatics phenotype classification), fewer items may be classified as one category and more as another (e.g., Multiple → Single shift). After any expansion, re-run the full pipeline and verify the count deltas are expected and justified. Verify with appropriate summary statistics in the merged output.
 
+13. **Writing defensive schema checks or processing unused columns inside core functions.** AI agents routinely add paranoid checks like `if col in df.columns:`, `if isinstance(val, float):`, or `.fillna("Unknown")` across all columns because training penalties bias them toward avoiding errors at any cost. This bloats code, obscures the actual business logic, and makes human review painful. Fix: validate required columns (`set(REQUIRED_COLUMNS) - set(df.columns)`) once at the I/O boundary (§4.4). Inside core transformation functions, treat the DataFrame as a 100% Trusted Zone and touch ONLY the columns explicitly required for the calculation.
+
+14. **Using `.apply(axis=1)` or `.iterrows()` instead of vectorized pandas/numpy operations.** Defaulting to row-wise iteration or custom helper functions with `.apply(axis=1)` is an AI anti-pattern driven by conversational safety rather than idiomatic Python. It degrades runtime performance by 10x–100x and produces boilerplate helper functions that dilute review clarity. Fix: check the §5.3 lookup table and always use native vectorized operations (`np.where`, `np.select`, `pd.cut`, `.isin`, `.map`, `.groupby().transform()`).
+
 ---
 
 ## 7. Verification Checklist
@@ -549,15 +607,19 @@ For keyword-profile analysis (categorizing every word in a corpus), use exact ma
 - [ ] Sections follow the ordered layout (IMPORTS → DECORATORS → CONSTANTS → CONFIG → LOGGING → CORE → MAIN)
 - [ ] Imports grouped: standard library → path setup (if needed) → project imports → data processing → third-party, sorted alphabetically within each group
 - [ ] All imports are in the top-level IMPORTS section — none in function bodies, class definitions, or section headers
-- [ ] Project module imports use `Path(__file__).parent.resolve()` + relative path, not hardcoded workflow paths (§1.4)
-- [ ] Project imports marked with `# noqa: E402` when following `sys.path.append`
+- [ ] Project module imports use `Path(__file__).resolve().parent` + `sys.path.insert(0, ...)` with `# noqa: E402` (§1.4)
 - [ ] No unused imports — every imported module/name is referenced in the script body
 - [ ] No `print()` calls — all runtime output uses `loguru`
 - [ ] `pathlib.Path` used everywhere (no `os.path`)
 - [ ] F-strings for interpolation (no `.format()` or `%`)
 - [ ] `@dataclass(kw_only=True, slots=True, frozen=True)` for configuration objects
 - [ ] `StrEnum` for grouped string markers, not for singleton constants
-- [ ] Guard clauses for edge cases at function top
+- [ ] Fail-Fast Boundary Contract: file existence and required columns validated ONCE at I/O boundary (§4.4)
+- [ ] Core logic functions operate as a 100% Trusted Zone: no defensive `if col in df.columns:`, `isinstance()`, or `.get()` fallbacks
+- [ ] Strict column scoping: only columns explicitly required by the business logic are processed, transformed, or cleaned
+- [ ] Guard clauses used sparingly for semantically valid empty data states, NEVER for schema paranoia
+- [ ] Named boolean masks used for compound filtering and multi-criteria classification (§5.3)
+- [ ] Native vectorized operations (`np.where`, `np.select`, `pd.cut`, `.map`) used instead of `.apply(axis=1)` or `.iterrows()`
 - [ ] Library modules (imported, not run directly) omit LOGGING, CONFIG, MAIN sections — no `parse_args()`, no `main()`, no `setup_logger()`
 - [ ] `parse_args()` function + `if __name__ == "__main__": sys.exit(main())` guard
 - [ ] Module-level docstring follows the §3.2 format (title → description → Input → Output → Usage → metadata)
@@ -566,3 +628,4 @@ For keyword-profile analysis (categorizing every word in a corpus), use exact ma
 - [ ] `@logger.catch` on core logic functions
 - [ ] `--verbose` CLI flag for debug-level logging
 - [ ] No deep `if-elif-else` chains — use `match...case` for categorical branches
+- [ ] Deterministic quality gates pass: `ruff check` (complexity C901 ≤ 8, function limits PLR09), `ruff format --check`, and `ty check`

@@ -1,17 +1,17 @@
 {
   "name": "python-script-conventions",
-  "version": "1.5.0",
-  "updated": "2026-09-01",
-  "summary": "Python 3.12+ coding standards: section layout, imports, type hints, logging, dataclass patterns, AI-friendly design.",
-  "tags": ["python", "conventions", "style-guide", "code-quality", "bioinformatics"],
+  "version": "1.7.0",
+  "updated": "2026-10-30",
+  "summary": "Python 3.12+ coding standards: 7-section layout, boundary contracts, anti-bloat vectorized idioms, type hints, logging, and dataclass patterns.",
+  "tags": ["python", "conventions", "style-guide", "code-quality", "bioinformatics", "anti-bloat"],
   "agents": ["codex", "claude-code"],
   "origin": "original",
   "author": "Yusheng Yang",
   "license": "MIT",
   "verification": {
-    "date": "2026-09-01",
-    "method": "template compiled with py_compile; conventions reviewed against the section-7 checklist by hand",
-    "verified_against": "Python 3.14.6",
+    "date": "2026-10-30",
+    "method": "template verified with ruff check and ruff format against pyproject.toml; conventions reviewed against section-7 checklist",
+    "verified_against": "Python 3.12+",
     "result": "pass"
   }
 }

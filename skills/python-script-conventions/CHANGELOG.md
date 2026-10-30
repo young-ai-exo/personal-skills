@@ -1,5 +1,29 @@
 # Changelog — python-script-conventions skill
 
+## [1.7.0] — 2026-10-30
+
+### Added
+- **Fail-Fast Boundary Contract vs. Trusted Core (§4.4)** — Strictly separates boundary I/O validation from core data processing logic. Mandates validating file existence and required DataFrame columns (`StrEnum` / schema) once at the I/O boundary (`load_*` or `main()`), while treating all `CORE LOGIC` functions as a 100% Trusted Zone with zero defensive checks (`if col in df.columns:`, `isinstance()`, `.get()` fallbacks).
+- **Strict Column Scoping** — Hard rule requiring agents to touch, validate, cast, or transform ONLY columns explicitly required by the prompt; all unrelated columns remain untouched.
+- **DataFrame Transformation & Reviewability Patterns (§5.3)** — Establishes human review speed standards for tabular data:
+  - **Named Boolean Masks**: Break complex conditions into 2-4 named boolean Series with clear domain semantics.
+  - **Idiomatic Vectorized APIs**: Comprehensive lookup table mapping domain transformations to native vectorized operators (`np.where`, `np.select`, `pd.cut`, `.isin`, `.map`, `.groupby().transform()`), explicitly barring row-wise helpers, `.apply(axis=1)`, and loops over rows.
+  - **Readable Step-by-Step Pipelines**: Enforces 1-3 lines per transformation step and descriptive intermediate names over cryptic 5-level nested one-liners.
+- **Common Pitfalls 13 & 14 (§6.3)** — Documents defensive schema check bloat in core logic and misuse of `.apply(axis=1)` / `.iterrows()`.
+- **Quality Gate Template (`templates/pyproject.toml`)** — Bundles full Ruff configuration with explicit rule catalog (C901 complexity ≤ 8, PLR09 size limits, TID251 banned APIs, strict print/logging bans) and Astral's `ty` static type checker.
+
+### Changed
+- **Hard Rules expanded** — Codified boundary validation contract, strict column scoping, and native vectorized idioms.
+- **Project Module Imports pattern (§1.4)** — Upgraded to `Path(__file__).resolve().parent` + `sys.path.insert(0, str(SRC_DIR))` with idempotency check (`if str(SRC_DIR) not in sys.path:`), ensuring symlink robustness and local-first import priority.
+- **Guard Clauses guidance (§4.1)** — Clarified that guard clauses must be used sparingly for valid empty data states, never for schema paranoia or type checking in core functions.
+- **Reference Template (`templates/agent_script_template.py`)** — Refactored to demonstrate the boundary contract (validating required columns at the I/O boundary in `main()`) and idiomatic vectorized assignment in the Trusted Zone.
+- **Verification Checklist (§7)** — Added boundary contract, trusted zone purity, strict column scoping, named masks, and deterministic quality gate checks.
+
+## [1.6.0] — 2026-09-22
+
+### Added
+- **Project module import pattern (§1.4)** — Standardized dynamic path resolution using `Path(__file__).parent.resolve()` and `sys.path.append()`.
+
 ## [1.5.0] — 2026-09-01
 
 ### Added

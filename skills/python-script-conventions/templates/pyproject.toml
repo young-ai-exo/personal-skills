@@ -199,8 +199,6 @@ ignore = [
     "ANN401",
     # Exempt TRY003 (raise-vanilla-args): allow inline f-strings in raise ValueError(f"Missing: {cols}") without forcing an extra variable assignment
     "TRY003",
-    # Exempt PD901 (pandas-df-variable-name): allow concise df variable names inside short, well-scoped data transformation functions
-    "PD901",
     # Exempt N803 (invalid-argument-name): allow uppercase matrix argument names (e.g., X_train, Y_obs, W) in mathematical/statistical functions
     "N803",
     # Exempt N806 (non-lowercase-variable-in-function): allow uppercase matrix/tensor local variables (e.g., X, Y, M) inside functions
@@ -277,6 +275,8 @@ force-sort-within-sections = true
 # Allow top-level CLI orchestrators (main()) to catch Exception (BLE001) to log tracebacks and exit non-zero
 "**/main.py" = ["BLE001"]
 "scripts/**/*.py" = ["BLE001"]
+"**/templates/**/*.py" = ["BLE001"]
+"**/agent_script_template.py" = ["BLE001"]
 # Relax return type annotation requirements (ANN) and parameter limits (PLR09) inside unit test files
 "tests/**/*.py" = ["ANN", "PLR09"]
 

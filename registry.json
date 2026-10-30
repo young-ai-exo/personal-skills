@@ -1,7 +1,7 @@
 {
   "registry_version": 1,
   "owner": "HarnessYoung",
-  "updated": "2026-10-26",
+  "updated": "2026-10-30",
   "skills": [
     {
       "name": "cnsplots",
@@ -17,15 +17,15 @@
     },
     {
       "name": "python-script-conventions",
-      "version": "1.4.0",
+      "version": "1.7.0",
       "path": "skills/python-script-conventions",
-      "summary": "Python 3.12+ coding standards: section layout, imports, type hints, logging, dataclass patterns, AI-friendly design.",
-      "tags": ["python", "conventions", "style-guide", "code-quality", "bioinformatics"],
+      "summary": "Python 3.12+ coding standards: 7-section layout, boundary contracts, anti-bloat vectorized idioms, type hints, logging, and dataclass patterns.",
+      "tags": ["python", "conventions", "style-guide", "code-quality", "bioinformatics", "anti-bloat"],
       "agents": ["codex", "claude-code"],
       "origin": "original",
       "author": "Yusheng Yang",
       "license": "MIT",
-      "verified_against": "snapshot 2026-08-12"
+      "verified_against": "Python 3.12+ / ruff 0.10.0"
     }
   ]
 }
