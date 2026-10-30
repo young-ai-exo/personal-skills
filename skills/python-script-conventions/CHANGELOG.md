@@ -9,6 +9,7 @@
 - **Declarative Vectorization**: Replaced row-wise `.apply(axis=1)` with named boolean masks and native vectorized operators (`np.where`, `np.select`, `pd.cut`, `.map`, `.isin`).
 - **Standardized Dataclass**: Changed configuration container to `@dataclass(kw_only=True, frozen=True)` named `Config` (with default `slots=False`), eliminating inheritance and mocking friction.
 - **Shared Infrastructure**: Centralized logging (`src/utils/logging.py`) and established reusable decorator conventions (`src/utils/decorators.py`) with strict AI guardrails.
+- **Deterministic Exit Code & Loguru Exception Boundary**: Codified explicit `main() -> int` returning exit code `1` on `logger.exception()`, strictly barring `@logger.catch` on pure core functions and warning against default `@logger.catch` zero-exit swallowing in workflow schedulers (Nextflow/Snakemake).
 - **Clean Asset Consolidation**: Retired legacy project-specific markdown references and consolidated all assets directly in `references/` (`references/agent_script_template.py` and `references/pyproject.toml`).
 
 ## [1.7.0] — 2026-10-30

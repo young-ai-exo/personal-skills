@@ -40,12 +40,12 @@ These rules are non-negotiable. Every rule directly maps to a deterministic lint
 3. **Fail-Fast Boundary Contract**: Validate file paths and required DataFrame columns (`StrEnum`) ONCE at the I/O boundary (`load_*` or `main()`). Core functions must never perform speculative column existence checks (`if col in df.columns:`) or defensive `.get()` fallbacks.
 4. **Strict Column Scoping**: Touch, validate, cast, or transform ONLY the DataFrame columns explicitly required by the business logic. Leave all unrelated columns completely untouched.
 5. **Native Vectorized Idioms**: Prefer built-in `pandas` and `numpy` vectorized operations (`np.where`, `np.select`, `pd.cut`, `.isin`, `.map`, `.groupby().transform()`) over custom row-wise helpers, `.apply(axis=1)`, or Python row loops (`.iterrows()`).
-6. **Exclusive Logging via Loguru**: Never use `print()` or standard library `logging`.
+6. **Exclusive Logging via Loguru**: Never use `print()` or standard library `logging`. Handle exceptions at the Imperative Shell (`main()`) via `logger.exception()` and non-zero exit codes. Never decorate pure Functional Core functions with `@logger.catch`.
 7. **Type Hints on All Function Signatures**: Annotate all arguments and explicit return types (`-> None` for side-effect procedures).
 8. **Single-Line Function Docstrings**: Let type hints document parameter types. Keep function docstrings to a concise, high-signal single line describing the business intent.
 9. **`pathlib.Path` Everywhere**: Never use `os.path` functions or manual string concatenation for filesystem paths.
 10. **Immutable Configuration Objects**: Use `@dataclass(kw_only=True, frozen=True)` for runtime configuration (named `Config`, or domain-specific variants like `AnalysisConfig`, `DataConfig`, `FilterConfig`). Leave `slots=False` (default) to avoid unnecessary inheritance friction and mocking issues.
-11. **Proper Exit Code Propagation**: All CLI entry points must terminate via `if __name__ == "__main__": sys.exit(main())`, where `main() -> int` returns `0` on success and non-zero on failure.
+11. **Proper Exit Code Propagation**: All CLI entry points must terminate via `if __name__ == "__main__": sys.exit(main())`, where `main() -> int` returns `0` on success and non-zero (`1`) on caught exceptions. Never allow exceptions to be silently swallowed with exit code `0`.
 
 ---
 
@@ -219,6 +219,45 @@ Standalone scripts simply import and call:
 ```python
 from utils.logging import setup_logger
 ```
+
+#### Exception Reporting & The Exit Code Contract
+
+When managing exceptions across the FC/IS boundary, maintain clean separation between reporting and pure computation:
+
+1. **Keep Functional Core Free of `@logger.catch`**:
+   Never place `@logger.catch` or defensive `try/except` blocks on internal transformation functions. Pure transformation functions must remain decoupled from logging decorators, allowing unexpected errors to bubble up naturally.
+
+2. **The `@logger.catch` Pitfall at Entry Points**:
+   - Default `@logger.catch()` has `reraise=False`: it logs the exception but **swallows it**, causing the Python process to exit with status code `0` (Success). In automated pipelines (Nextflow, Snakemake, CI/CD), this silently masks failures and causes downstream tasks to run on corrupt or missing data.
+   - Setting `reraise=True` (`@logger.catch(reraise=True)`) guarantees a non-zero exit code, but causes redundant "double tracebacks" in CLI output (Loguru's enhanced diagnostic followed by Python's unhandled traceback).
+
+3. **Standard Pattern: Explicit Shell Handling with `logger.exception`**:
+   The standard approach is **Option B**: wrap the Imperative Shell orchestrator (`main() -> int`) in a top-level `try/except Exception as e:`, log the full diagnostic traceback via `logger.exception()`, and return exit code `1`. The script entrypoint dispatches cleanly to `sys.exit(main())`:
+
+```python
+def main() -> int:
+    """Orchestrate I/O boundary, validate schema, and execute functional core."""
+    args = parse_args()
+    setup_logger(args.verbose)
+    config = Config(...)
+
+    try:
+        df_raw = pd.read_csv(config.input_path)
+        # Boundary validation & Functional Core execution
+        df_result = annotate_hits(df_raw, config)
+        df_result.to_csv(config.output_dir / "results.csv", index=False)
+        return 0
+    except Exception as e:
+        logger.exception(f"Fatal execution error: {e}")
+        return 1
+
+if __name__ == "__main__":
+    sys.exit(main())
+```
+
+> [!NOTE]
+> **When `@logger.catch` is Appropriate**:
+> Reserve `@logger.catch` for concurrent worker tasks (e.g., worker functions inside `multiprocessing.Pool` or `concurrent.futures` where unhandled exceptions would otherwise hang worker processes) or large-scale batch iteration loops where single-record failures must be logged without halting the entire workflow queue.
 
 ### 4.2 Reusable Decorators (`src/utils/decorators.py`)
 
@@ -497,6 +536,8 @@ When documenting modifications in commit messages, pull request summaries, or ex
 | **Nested `if-else` cascades (Cyclomatic Complexity > 8)**      | AI stacks condition on condition          | Break into named boolean masks or declarative signal mapping tables.                                           |
 | **Local imports inside functions**                               | Lazy patching without inspecting file top | All imports must reside in the top-level IMPORTS section (`PLC0415`).                                        |
 | **Monolithic functions (>40 statements)**                        | Dumping all workflow logic into one block | Separate Imperative Shell (`main()`) from Functional Core (`df -> df`).                                    |
+| **Decorating core functions with `@logger.catch`**               | AI fear of uncaught runtime errors        | Keep Functional Core pure. Catch fatal errors once in `main()` with `logger.exception()` and return `1`.     |
+| **Default `@logger.catch` on `main()` swallowing errors**        | AI unaware that default exits with code 0 | Avoid silent zero exits. Return explicit exit code `1` (`main() -> int`) passed to `sys.exit(main())`.       |
 
 ---
 
@@ -511,7 +552,7 @@ Before finalizing any script or submitting code for human review, verify each it
 - [ ] **Vectorization**: Zero `.apply(axis=1)`, `.iterrows()`, or Python row loops; native vectorized operators used throughout.
 - [ ] **Named Masks**: Compound filtering conditions broken into 2–4 domain-named boolean Series.
 - [ ] **Imports & Pathing**: All imports at file top; project imports use `Path(__file__).resolve().parent` + `sys.path.insert(0, ...)`.
-- [ ] **Logging & Output**: `loguru.logger` used exclusively; no `print()` or stdlib `logging`.
+- [ ] **Logging & Output**: `loguru.logger` used exclusively (no `print()` or stdlib `logging`); boundary errors caught in `main()` with `logger.exception()` returning exit code `1` (no `@logger.catch` on pure core).
 - [ ] **Configuration**: Runtime config encapsulated in `@dataclass(kw_only=True, frozen=True)` (default `slots=False`).
 - [ ] **Docstrings**: Single-line docstrings on all functions and classes; comprehensive module-level docstring at top.
 - [ ] **Deterministic Quality Gates**:

@@ -109,7 +109,6 @@ class Config:
 # =============================================================================
 
 
-@logger.catch
 def filter_dataframe(df: pd.DataFrame, config: Config) -> pd.DataFrame:
     """Filter DataFrame using named boolean masks and vectorized assignment."""
     # Semantic Guard Clause: legitimate empty data state, NEVER for schema paranoia
