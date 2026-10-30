@@ -1,5 +1,16 @@
 # Changelog — python-script-conventions skill
 
+## [2.0.0] — 2026-10-30
+
+### Architectural Overhaul
+- **Functional Core, Imperative Shell (FC/IS)**: Completely restructured from rigid section counting into an elegant two-layer model separating the outer Imperative Shell (CLI parsing, I/O, boundary schema validation, process exit codes) from the inner Functional Core (pure, trusted data transformations).
+- **Design by Contract**: Boundary validation (`set(REQUIRED_COLUMNS) - set(df.columns)`) enforced strictly at entry; core functions operate as a 100% Trusted Zone with zero defensive checks.
+- **Strict Column Scoping**: Mandatory restriction that AI agents touch, validate, cast, or transform ONLY columns explicitly requested.
+- **Declarative Vectorization**: Replaced row-wise `.apply(axis=1)` with named boolean masks and native vectorized operators (`np.where`, `np.select`, `pd.cut`, `.map`, `.isin`).
+- **Standardized Dataclass**: Changed configuration container to `@dataclass(kw_only=True, frozen=True)` named `Config` (with default `slots=False`), eliminating inheritance and mocking friction.
+- **Shared Infrastructure**: Centralized logging (`src/utils/logging.py`) and established reusable decorator conventions (`src/utils/decorators.py`) with strict AI guardrails.
+- **Clean Asset Consolidation**: Retired legacy project-specific markdown references and consolidated all assets directly in `references/` (`references/agent_script_template.py` and `references/pyproject.toml`).
+
 ## [1.7.0] — 2026-10-30
 
 ### Added

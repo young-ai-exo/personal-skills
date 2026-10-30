@@ -17,9 +17,9 @@
     },
     {
       "name": "python-script-conventions",
-      "version": "1.7.0",
+      "version": "2.0.0",
       "path": "skills/python-script-conventions",
-      "summary": "Python 3.12+ coding standards: 7-section layout, boundary contracts, anti-bloat vectorized idioms, type hints, logging, and dataclass patterns.",
+      "summary": "Python 3.12+ engineering standards: Functional Core / Imperative Shell architecture, fail-fast boundary contracts, anti-bloat vectorization, and deterministic quality gates.",
       "tags": ["python", "conventions", "style-guide", "code-quality", "bioinformatics", "anti-bloat"],
       "agents": ["codex", "claude-code"],
       "origin": "original",

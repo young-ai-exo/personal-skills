@@ -275,6 +275,7 @@ force-sort-within-sections = true
 # Allow top-level CLI orchestrators (main()) to catch Exception (BLE001) to log tracebacks and exit non-zero
 "**/main.py" = ["BLE001"]
 "scripts/**/*.py" = ["BLE001"]
+"**/references/**/*.py" = ["BLE001"]
 "**/templates/**/*.py" = ["BLE001"]
 "**/agent_script_template.py" = ["BLE001"]
 # Relax return type annotation requirements (ANN) and parameter limits (PLR09) inside unit test files

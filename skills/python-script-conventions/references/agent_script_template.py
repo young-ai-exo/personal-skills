@@ -2,49 +2,39 @@
 
 # =============================================================================
 # CHECKLIST BEFORE FINALIZING (delete this block when done):
-# - [ ] Replace the module docstring: title, description, Input, Output, Usage
+# - [ ] Replace module docstring: title, description, Input, Output, Usage
 # - [ ] Resolve every `REPLACE THIS` marker below
-# - [ ] Update REQUIRED_COLUMNS / DataCol to match the real input
-# - [ ] Validate schema once at I/O boundary (Fail-Fast)
+# - [ ] Update DataCol / REQUIRED_COLUMNS to match actual dataset schema
+# - [ ] Validate schema once at I/O boundary in main() (Fail-Fast)
 # - [ ] Implement core logic without defensive schema checks (Trusted Zone)
-# - [ ] Use named boolean masks and vectorized methods (np.where, np.select)
-# - [ ] Update parse_args() with the actual CLI parameters
-# - [ ] Verify every import is used, and that none sit inside a function body
-# - [ ] Walk the full checklist in the skill's SKILL.md section 7
+# - [ ] Use named boolean masks and native vectorized methods (np.where, np.select)
+# - [ ] Update parse_args() with actual CLI parameters
+# - [ ] Verify every import is used, and that none sit inside function bodies
+# - [ ] Verify ruff check, ruff format --check, and ty check pass cleanly
 # =============================================================================
-
-# (Optional) PEP 723 inline script metadata for self-contained execution with `uv`.
-# Remove or adjust if managing dependencies via a traditional virtual environment.
-# /// script
-# requires-python = ">=3.12"
-# dependencies = [
-#     "pandas",
-#     "loguru",
-# ]
-# ///
 
 """
 Script Template for Data Processing                    # REPLACE THIS: One-line title
 ===================================================
 
-A template script that demonstrates the standard layout for AI-generated
-Python scripts in this workspace. Replace this description with the
-script's actual business logic, core algorithm, and context.
+A template script demonstrating the Functional Core, Imperative Shell (FC/IS)
+architecture for AI-assisted Python scripts in this workspace. Replace this
+description with the script's actual analytical logic, core algorithm, and context.
                                                         # REPLACE THIS: Full description
 
 Input
 -----
-- Input file path (CSV, TSV, or XLSX) with required columns.
+- Input file path (CSV, TSV, or Parquet) with required columns.
 - See ``--input`` / ``--help`` for exact format.      # REPLACE THIS: Actual input spec
 
 Output
 ------
-- Filtered results saved to the configured output directory.
+- Filtered results and audit summaries saved to configured output directory.
 - File format depends on the script's core logic.     # REPLACE THIS: Actual output spec
 
 Usage
 -----
-    mamba run -n bioinformatics python script_template.py \
+    python script_template.py \
         --input data/raw/file.csv \
         --output-dir outputs/ \
         --keywords growth morphology \
@@ -55,7 +45,9 @@ Date:   YYYY-MM-DD                                     # REPLACE THIS: Today's d
 Version: 1.0.0
 """
 
-# ==================== §1 IMPORTS ====================
+# =============================================================================
+# 1. IMPORTS (Standard Library -> Third-Party -> Local Project)
+# =============================================================================
 # Standard library
 import argparse
 from dataclasses import dataclass
@@ -70,11 +62,16 @@ from loguru import logger
 import numpy as np
 import pandas as pd
 
-# ==================== §2 TYPE HINTS & DECORATORS ====================
-# (Optional) Custom type aliases and decorators used throughout the script
+# (Optional) Dynamic project path setup when importing from src/ in a subfolder:
+# SCRIPT_DIR = Path(__file__).resolve().parent
+# SRC_DIR = SCRIPT_DIR.parent / "src"
+# if str(SRC_DIR) not in sys.path:
+#     sys.path.insert(0, str(SRC_DIR))
+# from utils.logging import setup_logger
 
-# ==================== §3 CONSTANTS ====================
-# Module-level constants: filenames, magic numbers, defaults, etc.
+# =============================================================================
+# 2. CONSTANTS & ENUMS (Domain Markers & Column Definitions)
+# =============================================================================
 DEFAULT_OUTPUT_DIR = Path("outputs")
 
 
@@ -87,56 +84,45 @@ class DataCol(StrEnum):
     STATUS = "status"
 
 
-# Columns required at the I/O boundary
+# Columns required at the I/O boundary (validated once at entry)
 REQUIRED_COLUMNS = [DataCol.GENE_ID, DataCol.DESCRIPTION, DataCol.CATEGORY]
 
-# ==================== §4 CONFIG ====================
+# =============================================================================
+# 3. CONFIGURATION (Immutable Runtime Parameters)
+# =============================================================================
 
 
-@dataclass(kw_only=True, slots=True, frozen=True)
+@dataclass(kw_only=True, frozen=True)
 class Config:
-    """Immutable configuration container for script execution."""
+    """Immutable runtime configuration container (default slots=False)."""
 
     input_path: Path
     output_dir: Path
     keywords: list[str]
     verbose: bool = False
     # kw_only=True → forces keyword arguments (prevents positional confusion)
-    # slots=True → reduces memory footprint (no __dict__ per instance)
-    # frozen=True → makes instances immutable (config shouldn't change after creation)
+    # frozen=True  → makes instances immutable (configuration shouldn't change at runtime)
 
 
-# ==================== §5 LOGGING ====================
-
-
-def setup_logger(verbose: bool) -> None:
-    """Configure loguru for this script's needs."""
-    logger.remove()  # Clear default handler
-    level = "DEBUG" if verbose else "INFO"
-    logger.add(
-        sys.stderr,
-        level=level,
-        format="<green>{time:YYYY-MM-DD HH:mm:ss}</green> | <level>{level:<8}</level> | {message}",
-    )
-
-
-# ==================== §6 CORE LOGIC ====================
+# =============================================================================
+# 4. FUNCTIONAL CORE (Pure, Trusted Transformations)
+# =============================================================================
 
 
 @logger.catch
 def filter_dataframe(df: pd.DataFrame, config: Config) -> pd.DataFrame:
     """Filter DataFrame using named boolean masks and vectorized assignment."""
-    # Guard clause: legitimate semantic state (empty data), NEVER for schema paranoia
+    # Semantic Guard Clause: legitimate empty data state, NEVER for schema paranoia
     if df.empty:
         logger.warning("Input DataFrame is empty; returning empty result.")
         return df
 
-    # REPLACE THIS: Implement domain logic in Trusted Zone (assumes columns are valid)
+    # REPLACE THIS: Implement domain logic in Trusted Zone (assumes schema is validated)
     if not config.keywords:
         logger.info("No keywords provided; returning all rows.")
         return df
 
-    # Named boolean mask: break conditions into clear domain Series
+    # Named boolean mask: break compound criteria into self-documenting Series
     keyword_pattern = "|".join(config.keywords)
     has_keyword = df[DataCol.DESCRIPTION].str.contains(keyword_pattern, case=False, na=False)
 
@@ -152,20 +138,34 @@ def filter_dataframe(df: pd.DataFrame, config: Config) -> pd.DataFrame:
     return result
 
 
-# ==================== §7 MAIN EXECUTION ====================
+# =============================================================================
+# 5. IMPERATIVE SHELL (Boundary Validation, I/O & CLI Entry Point)
+# =============================================================================
+
+
+def setup_logger(verbose: bool) -> None:
+    """Configure Loguru output formatting for standalone execution."""
+    # In shared multi-script projects, prefer: from utils.logging import setup_logger
+    logger.remove()
+    level = "DEBUG" if verbose else "INFO"
+    logger.add(
+        sys.stderr,
+        level=level,
+        format="<green>{time:YYYY-MM-DD HH:mm:ss}</green> | <level>{level:<8}</level> | {message}",
+    )
 
 
 def parse_args() -> argparse.Namespace:
     """Parse command-line arguments."""
     parser = argparse.ArgumentParser(
-        description="Process data and filter by keywords.",  # REPLACE THIS: Your actual description
+        description="Process data and filter by keywords.",  # REPLACE THIS: Real description
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     parser.add_argument(
         "--input",
         type=Path,
         required=True,
-        help="Path to input CSV/TSV/XLSX file.",
+        help="Path to input CSV/TSV/Parquet file.",
     )
     parser.add_argument(
         "--output-dir",
@@ -189,14 +189,14 @@ def parse_args() -> argparse.Namespace:
 
 
 def main() -> int:
-    """Main execution flow orchestrating boundary validation and processing."""
+    """Main execution flow orchestrating boundary validation and core execution."""
     args = parse_args()
     setup_logger(args.verbose)
 
-    # Build config from CLI args
+    # Build immutable configuration from CLI arguments
     config = Config(
-        input_path=args.input,
-        output_dir=args.output_dir,
+        input_path=args.input.resolve(),
+        output_dir=args.output_dir.resolve(),
         keywords=args.keywords,
         verbose=args.verbose,
     )
@@ -204,17 +204,18 @@ def main() -> int:
     # Prepare output directory
     config.output_dir.mkdir(parents=True, exist_ok=True)
 
-    # Execute core logic
+    # Execute workflow within the Imperative Shell
     logger.info(f"Starting processing for file: {config.input_path}")
     try:
         df_raw = pd.read_csv(config.input_path)
 
-        # Boundary Validation (Fail-Fast: validate required columns ONCE at I/O boundary)
+        # Fail-Fast Boundary Contract: validate schema ONCE at I/O entry
         missing_cols = set(REQUIRED_COLUMNS) - set(df_raw.columns)
         if missing_cols:
             logger.error(f"Missing required columns in {config.input_path}: {sorted(missing_cols)}")
             return 1
 
+        # Hand over to 100% Trusted Functional Core
         df_filtered = filter_dataframe(df_raw, config)
 
         out_file = config.output_dir / "filtered_results.csv"
