@@ -2,12 +2,6 @@
 name: python-script-conventions
 description: Use when generating, modifying, or reviewing Python scripts (3.12+). Specifies section layout, boundary validation vs. trusted core (anti-bloat), DataFrame transformation reviewability patterns, import ordering (including project module imports via Path(__file__)), type system, logging, dataclass patterns, and AI-agent-friendly design principles. Load this skill whenever creating or editing a .py file — especially for bioinformatics/data-science scripts.
 version: 1.7.0
-author: Yusheng Yang
-license: MIT
-metadata:
-  hermes:
-    tags: [python, conventions, style-guide, code-quality, ai-design, anti-bloat]
-    related_skills: [plan, writing-plans, test-driven-development, project-scaffolding, systematic-debugging]
 ---
 
 # Python Script Conventions (Modern Python 3.12+)
