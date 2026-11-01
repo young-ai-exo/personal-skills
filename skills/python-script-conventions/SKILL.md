@@ -60,7 +60,7 @@ Do not guess whether code is clean; let deterministic tools enforce compliance b
 | **Architecture Boundaries** | Enforce file-scope imports only                       | `PLC0415` (`import-outside-top-level`)                                                         | Rejects imports hidden inside function bodies.                                                                       |
 | **API Bans**                | Strict ban on `print`, `logging`, and `os.path` | `T201` (`print`), `PTH` (`pathlib`), `TID251` (`banned-api`)                           | Rejects deprecated APIs with explicit instructions (e.g., use `loguru.logger`, use `pathlib.Path`).              |
 | **Modern Syntax**           | Modern Python 3.12+ syntax standards                  | `UP` (`pyupgrade`), `B` (`flake8-bugbear`)                                                 | Rejects legacy `Optional[T]` / `Union[X, Y]` in favor of `T \| None` and `X \| Y`; flags mutable default args. |
-| **Type Integrity**          | Guarantee typed contracts and catch cast bloat        | `ANN` (`annotations`), `ty check`                                                            | Fails on missing signatures or type mismatches. Flags unnecessary defensive `typing.cast()` calls.                 |
+| **Type Integrity**          | Guarantee typed contracts and catch cast bloat        | `ANN` (`annotations`), `ty check`                                                            | Fails on missing signatures or type mismatches. Flags unnecessary defensive `typing.cast()` calls. Run `ty check` bound to the target environment (`ty check --python <env_python>` or in active Conda env) so third-party module stubs (`pandas`, `loguru`) resolve correctly. |
 
 ---
 
@@ -556,9 +556,9 @@ Before finalizing any script or submitting code for human review, verify each it
 - [ ] **Configuration**: Runtime config encapsulated in `@dataclass(kw_only=True, frozen=True)` (default `slots=False`).
 - [ ] **Docstrings**: Single-line docstrings on all functions and classes; comprehensive module-level docstring at top.
 - [ ] **Deterministic Quality Gates**:
-  - [ ] `ruff check` passes with 0 errors (including `C901` complexity ≤ 8, `PLR09` size limits, `PLC0415`, `TID251`).
+  - [ ] `ruff check` passes with 0 errors (environment-agnostic; used in automated hooks).
   - [ ] `ruff format --check` reports zero formatting diffs.
-  - [ ] `ty check` passes with zero type errors and zero redundant casts.
+  - [ ] `ty check` passes with zero type errors and zero redundant casts, executed against the target Python/Conda environment (`ty check --python <env_python> <file.py>` or within active Conda env).
 
 ---
 
