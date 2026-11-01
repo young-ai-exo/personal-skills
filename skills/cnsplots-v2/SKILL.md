@@ -1,18 +1,20 @@
 ---
 name: cnsplots-v2
-description: Prioritize whenever plotting scientific, publication-quality figures, charts, or data visualizations in Python (matplotlib, seaborn, cnsplots, scanpy). Covers multi-panel layouts, ~100px panel calibration, statistical annotations, and journal-standard aesthetics (defaulting to Cell style with Arial font and Cell 10-color palette, with support for Nature, Science, and other journal styles). If cnsplots is installed, uses cnsplots multipanel/figure; if cnsplots is not installed, proactively prompts the user to choose between installing cnsplots or using the bundled standalone mplstyle.
+description: Create, revise, and troubleshoot publication-ready scientific plots and data visualizations in Python (cnsplots, matplotlib, seaborn, scanpy), including distribution (box, violin, strip, lollipop, ridge), regression, heatmap, genomics (volcano, GSEA), survival (Kaplan-Meier, cumulative incidence), set (venn, upset), flow (sankey), classification/ROC/PR, and multi-panel figures. Prioritize whenever a user asks to plot or visualize data in Python, or requests Cell/Nature/Science-style visualization, precise physical figure dimensions (pt/mm/in), statistical plot annotations, or editable SVG/PDF publication output. Enforces ~100 px/pt panel calibration with zero manual font/marker overrides, defaulting to Cell palette and Arial typography. Supports native cnsplots (Mode A) and zero-dependency pure matplotlib/seaborn via bundled cns_cell.mplstyle (Mode B) with interactive fallback.
 ---
 
 # cnsplots v2
 
 > [!NOTE]
-> 本项目是在上游开源项目 [cnsplots](https://github.com/faridrashidi/cnsplots) 的官方 Agent Skill（[src/cnsplots/_agent_skill/cnsplots](https://github.com/faridrashidi/cnsplots/tree/main/src/cnsplots/_agent_skill/cnsplots)）基础上优化修改而来。
-> 文档: <https://cnsplots.farid.one/latest/api.html> · 图库: <https://cnsplots.farid.one/latest/examples/index.html>
+> This skill is an enhanced derivative of the official Agent Skill distributed with the open-source [cnsplots](https://github.com/faridrashidi/cnsplots) project ([src/cnsplots/_agent_skill/cnsplots](https://github.com/faridrashidi/cnsplots/tree/main/src/cnsplots/_agent_skill/cnsplots)).
+> Official Documentation: <https://cnsplots.farid.one/latest/api.html> · Examples Gallery: <https://cnsplots.farid.one/latest/examples/index.html>
 
-Publication-quality scientific visualization in Python across major journal styles (Cell, Nature, Science, etc.):
-* **Default Aesthetics**: Defaults to the **Cell** 10-color qualitative palette and **Arial** sans-serif typography, with full flexibility to select other styles (Nature, Science, NEJM, Lancet, etc.) when needed.
-* **Continuous Palette**: Perceptually uniform `viridis` colormap by default.
-* **Proportions**: Calibrated to individual axes/panels in the **~100 px/pt neighborhood** (80, 100, 120, 150), preserving built-in font (8pt/7pt) and point size (`s=7`) defaults without manual overrides.
+Publication-ready scientific visualization in Python across major journal styles (**Cell**, **Nature**, **Science**, etc.), featuring:
+* **Precise Physical Dimension Control**: Sizing in PostScript points (`pt`, 1/72 inch), millimeters (`mm`), or inches (`in`) tailored to exact 1-column, 1.5-column, and 2-column journal limits.
+* **Automated Statistical Annotations**: One-parameter statistical tests (Mann-Whitney U, Welch's t-test, Wilcoxon, paired t-test, log-rank, Cox HR) with live result extraction via `cns.get_comparison_results(ax)`.
+* **Editable Vector Output**: Retains live, selectable text for Adobe Illustrator workflows (`svg.fonttype = 'none'`, `pdf.fonttype = 42`).
+* **Default Aesthetics**: Defaults to the **Cell** 10-color qualitative palette, **Arial** sans-serif typography, and perceptually uniform `viridis` colormap, with full flexibility to select Nature, Science, or other journal styles.
+* **Proportions Contract**: Mathematically calibrated for individual axes/panels in the **~100 px/pt neighborhood** (80, 100, 120, 150), strictly preserving default font (8 pt/7 pt) and marker (`s=7`) sizes without manual overrides.
 * **Dual Execution Modes**: Native `cnsplots` (Mode A) or zero-dependency pure matplotlib/seaborn via standalone `cns_cell.mplstyle` (Mode B).
 
 ---
@@ -20,7 +22,7 @@ Publication-quality scientific visualization in Python across major journal styl
 ## 1. Skill Trigger & Environment Decision Protocol
 
 Whenever writing Python plotting or visualization code, **always prioritize cnsplots standards**.
-Before writing plotting code, run or check the environment:
+Before writing plotting code, check the execution environment:
 
 ```bash
 python3 $SKILL_DIR/scripts/check_env.py
@@ -29,16 +31,36 @@ python3 $SKILL_DIR/scripts/check_env.py
 ### Fallback Interaction Rule (When `cnsplots` is Missing)
 If `cnsplots` is **not installed** in the active Python environment, you **MUST ask the user** before proceeding:
 
-> "检测到当前 Python 环境未安装 `cnsplots`。请问您希望：
-> 1. **(推荐) 安装 `cnsplots`** (`pip install cnsplots`)：获得自动多面板布局、A/B/C 标签与内置统计学检验标注。
-> 2. **使用内置导出的出版级样式表 (`cns_cell.mplstyle`)**：通过原生 `matplotlib` / `seaborn` 直接绘制出版级风格图表（默认采用 Cell 样式，无需安装新包）。"
+> "The `cnsplots` package is not installed in the active Python environment. Would you prefer to:
+> 1. **(Recommended) Install `cnsplots`** (`pip install cnsplots`): Enables automated multi-panel flow layouts, A/B/C labeling, and built-in statistical annotations.
+> 2. **Use the bundled publication style sheet (`cns_cell.mplstyle`)**: Render journal-grade figures directly with native `matplotlib` / `seaborn` (defaults to Cell Press style, zero extra packages needed)."
 
 * If the user selects **1** (or `cnsplots` is already installed) $\rightarrow$ Use **Mode A (`cnsplots`)**.
 * If the user selects **2** (or prefers zero new packages) $\rightarrow$ Use **Mode B (Pure Matplotlib / Seaborn via `cns_cell.mplstyle`)**.
 
 ---
 
-## 2. Style Contracts & Core Rules
+## 2. Core Capabilities & Supported Plot Functions
+
+### Plot Types Catalog
+| Domain | Functions | Key Highlights |
+| :--- | :--- | :--- |
+| **Distributions & Comparisons** | `boxplot`, `violinplot`, `stripplot`, `barplot`, `lollipopplot`, `dumbbellplot`, `histplot`, `kdeplot`, `ridgeplot` | Pairwise statistical testing via `pairs=`, sample size display with `add_count=True`. |
+| **Relationships & Regression** | `scatterplot`, `regplot`, `lineplot`, `slopeplot` | Automatic legend scaling, linear/polynomial fits, paired before/after slope lines. |
+| **Matrices & Enrichment** | `heatmapplot`, `dotplot`, `confusionplot` | Hierarchical clustering, row/column dendrograms, dot size/color encodings. |
+| **Proportions, Sets & Flow** | `stackplot`, `vennplot`, `upsetplot`, `sankeyplot` | Scalable set intersections (UpSet), 2–3 set Venn diagrams, category transition flow. |
+| **Survival & Clinical Summaries** | `survivalplot`, `cumulativeincidenceplot`, `forestplot` | Kaplan-Meier curves, log-rank tests, hazard ratios, competing-risk cumulative incidence. |
+| **Genomics & Model Evaluation**| `volcanoplot`, `gseaplot`, `rocplot`, `precisionrecallplot`, `calibrationplot` | Differential expression volcano cuts, GSEA enrichment, ROC/PR curves with AUC tests. |
+
+### Statistical Result Extraction (Non-destructive)
+After calling plots with statistical tests, retrieve exact results programmatically without rerunning:
+* `cns.get_comparison_results(ax)`: DataFrame with `group1`, `group2`, `test`, `n1`, `n2`, `pvalue_raw`, `pvalue_adjusted`, `significant`, and rendered `annotation`.
+* `cns.get_survival_results(ax)`: Median survival times, landmark survival rates, hazard ratios, and log-rank p-values.
+* `cns.get_roc_results(ax)` / `get_precision_recall_results(ax)` / `get_calibration_results(ax)`: Detached metrics, confidence bands, and pairwise AUC comparisons.
+
+---
+
+## 3. Style Contracts & Core Rules
 
 1. **Default Color Palette (Cell)**:
    * By default, use the `Cell` 10-color qualitative palette (`cns.settings.palette_qual = "Cell"`), paired with `viridis` for continuous data (`cns.settings.palette_seq = "viridis"`).
@@ -67,7 +89,7 @@ If `cnsplots` is **not installed** in the active Python environment, you **MUST 
 
 ---
 
-## 3. Mode A: `cnsplots` Workflow (Native)
+## 4. Mode A: `cnsplots` Workflow (Native)
 
 ### Boilerplate Setup (Put at script top)
 ```python
@@ -100,12 +122,7 @@ cns.setup_matplotlib()
   cns.take_legend_out(title="Group", ax=ax_b)  # keyword-only ax=
 
   ax_c = mp.panel("C")  # default 150x150 pt
-  ```
-* **Read Statistics Back**:
-  After `cns.boxplot` / `violinplot` with `pairs=`, read back verified p-values without rerunning:
-  ```python
-  stats_df = cns.get_comparison_results(ax_a)
-  ```
+```
 * **KDE Plot KS-test cleanup**:
   `cns.kdeplot` with 2-level `hue` annotates an unrequested Kolmogorov-Smirnov test. If unwanted, remove it:
   ```python
@@ -113,14 +130,14 @@ cns.setup_matplotlib()
       if text.get_text().startswith("$P"):
           text.remove()
   ```
-* **Save Figure**:
+* **Save Figure (Editable Vector)**:
   ```python
   cns.savefig("output.svg", bbox_inches=None)  # None preserves exact column width
   ```
 
 ---
 
-## 4. Mode B: Pure Matplotlib / Seaborn Workflow (Fallback)
+## 5. Mode B: Pure Matplotlib / Seaborn Workflow (Fallback)
 
 Use when `cnsplots` is not installed. Zero extra dependencies.
 
@@ -157,7 +174,7 @@ fig.savefig("figure_cell.pdf")
 
 ---
 
-## 5. Bundled Assets Index
+## 6. Bundled Assets Index
 
 ### Styles & Colors
 * [`styles/cns_cell.mplstyle`](styles/cns_cell.mplstyle): Standalone Matplotlib style sheet with all Cell Press rcParams (Arial, Cell palette cycler, 0.5pt spines, 8/7pt hierarchy, 300 dpi vector settings).
@@ -178,4 +195,3 @@ fig.savefig("figure_cell.pdf")
 * [`references/journal-specs.md`](references/journal-specs.md): Specifications for Cell Press (default), Nature, and Science (column widths, font caps, line weights, resolution).
 * [`references/panel-sizing-100px.md`](references/panel-sizing-100px.md): The 100 px golden ratio, point-to-inch conversions, and typography proportions.
 * [`references/composition-guide.md`](references/composition-guide.md): Layout patterns, `multipanel` dynamic left-reserve physics, and alignment rules.
-

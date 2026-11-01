@@ -72,12 +72,14 @@ def main() -> int:
         )
         print("\nACTION REQUIRED for Agent:")
         print("  Prompt the user with the following choice before proceeding:")
-        print("  '检测到当前 Python 环境未安装 cnsplots 包。请问您希望：'")
         print(
-            "  '  1. (推荐) 安装 cnsplots (pip install cnsplots)，获得自动多子图排版与统计标注？'"
+            "  'The cnsplots package is not installed in the active Python environment. Would you prefer to:'"
         )
         print(
-            "  '  2. 使用内置导出的出版级样式表 (cns_cell.mplstyle)，通过原生 matplotlib / seaborn 绘制顶刊出版风格图表（默认采用 Cell 样式，无需安装新包）？'"
+            "  '  1. (Recommended) Install cnsplots (pip install cnsplots) for multi-panel flow layouts & stats annotations?'"
+        )
+        print(
+            "  '  2. Use the bundled cns_cell.mplstyle with native matplotlib / seaborn (Cell style, zero extra packages)?'"
         )
         return 1
 

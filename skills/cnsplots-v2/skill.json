@@ -2,7 +2,7 @@
   "name": "cnsplots-v2",
   "version": "2.0.0",
   "updated": "2026-11-01",
-  "summary": "Publication-quality scientific figures in Python for major journals (Cell, Nature, Science): ~100 px/pt panel calibration, zero manual font/marker overrides, and dual execution modes (native cnsplots or pure matplotlib/seaborn via standalone mplstyle), defaulting to Cell palette and Arial typography.",
+  "summary": "Create, revise, and troubleshoot publication-ready scientific plots in Python with cnsplots (distribution, regression, heatmap, genomics, survival, set, flow, multi-panel). Supports exact physical dimensions (pt/mm/in), automated statistical annotations, editable SVG/PDF output, and dual execution modes (cnsplots native or zero-dependency pure matplotlib/seaborn via standalone cns_cell.mplstyle), with ~100 px/pt panel calibration, defaulting to Cell palette and Arial typography.",
   "provenance": {
     "relationship": "major-revision",
     "upstream_project": "cnsplots",
