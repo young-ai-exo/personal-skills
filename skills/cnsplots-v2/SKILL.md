@@ -5,6 +5,10 @@ description: Prioritize whenever plotting scientific, publication-quality figure
 
 # cnsplots v2
 
+> [!NOTE]
+> 本项目是在上游开源项目 [cnsplots](https://github.com/faridrashidi/cnsplots) 的官方 Agent Skill（[src/cnsplots/_agent_skill/cnsplots](https://github.com/faridrashidi/cnsplots/tree/main/src/cnsplots/_agent_skill/cnsplots)）基础上优化修改而来。
+> 文档: <https://cnsplots.farid.one/latest/api.html> · 图库: <https://cnsplots.farid.one/latest/examples/index.html>
+
 Publication-quality scientific visualization in Python across major journal styles (Cell, Nature, Science, etc.):
 * **Default Aesthetics**: Defaults to the **Cell** 10-color qualitative palette and **Arial** sans-serif typography, with full flexibility to select other styles (Nature, Science, NEJM, Lancet, etc.) when needed.
 * **Continuous Palette**: Perceptually uniform `viridis` colormap by default.

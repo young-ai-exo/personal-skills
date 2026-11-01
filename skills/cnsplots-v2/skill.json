@@ -6,6 +6,10 @@
   "provenance": {
     "relationship": "major-revision",
     "upstream_project": "cnsplots",
+    "upstream_repo": "https://github.com/faridrashidi/cnsplots",
+    "upstream_skill_url": "https://github.com/faridrashidi/cnsplots/tree/main/src/cnsplots/_agent_skill/cnsplots",
+    "upstream_license": "BSD-3-Clause",
+    "upstream_license_url": "https://github.com/faridrashidi/cnsplots/blob/main/LICENSE.md",
     "changes": [
       "Exported standalone styles/cns_cell.mplstyle for zero-dependency fallback via pure matplotlib/seaborn.",
       "Added proactive environment branching: prompt user to choose between installing cnsplots or using pure mplstyle.",
