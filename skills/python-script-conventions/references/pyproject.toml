@@ -316,4 +316,4 @@ redundant-cast = "warn"
 # Warn on stale # ty: ignore[...] comments that no longer suppress any active diagnostic
 unused-ignore-comment = "warn"
 # Warn when accessing an attribute or variable that might be uninitialized on some control-flow paths
-possibly-unbound-attribute = "warn"
+possibly-missing-attribute = "warn"
