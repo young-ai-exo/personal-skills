@@ -1,0 +1,25 @@
+{
+  "name": "cnsplots-v3",
+  "version": "3.0.0",
+  "updated": "2026-11-01",
+  "summary": "Publication-ready scientific visualization in Python across major journals (Cell default, Nature, Science). Features an actionable 6-step closed-loop workflow (environment -> data profiling & plot mapping -> layout architecture & budgeting -> ~100px build with zero overrides -> statistical truth extraction & cleanup -> output verification), dual execution modes (cnsplots native or zero-dependency pure matplotlib/seaborn via standalone cns_cell.mplstyle), and a dedicated references/plot-catalog.md.",
+  "provenance": {
+    "relationship": "major-revision",
+    "upstream_project": "cnsplots",
+    "upstream_repo": "https://github.com/faridrashidi/cnsplots",
+    "upstream_skill_url": "https://github.com/faridrashidi/cnsplots/tree/main/src/cnsplots/_agent_skill/cnsplots",
+    "upstream_docs": "https://cnsplots.farid.one/latest/api.html",
+    "upstream_gallery": "https://cnsplots.farid.one/latest/examples/index.html",
+    "upstream_license": "BSD-3-Clause",
+    "upstream_license_url": "https://github.com/faridrashidi/cnsplots/blob/main/LICENSE.md",
+    "changes": [
+      "Restructured SKILL.md into a deterministic, data-driven 6-step closed-loop workflow (SOP).",
+      "Decoupled the 30+ plot function catalog into a standalone references/plot-catalog.md.",
+      "Exported standalone styles/cns_cell.mplstyle for zero-dependency fallback via pure matplotlib/seaborn.",
+      "Added proactive environment branching: prompt user to choose between installing cnsplots or using pure mplstyle.",
+      "Enforced ~100 px/pt (80, 100, 120, 150) panel sizing baseline and strict prohibition of font/marker manual overrides.",
+      "Set Cell Press 10-color palette as the default qualitative palette, with support for Nature, Science, and other journal styles.",
+      "Set Arial sans-serif typography as the default font hierarchy across templates and workflows."
+    ]
+  }
+}
