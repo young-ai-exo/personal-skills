@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Template: Pure Seaborn with exported cns_cell.mplstyle (Mode B).
+"""Template: Pure Seaborn with project-local cns_cell.mplstyle (Mode B).
 
 Use when cnsplots is NOT installed.
-Applies Cell Press style sheet and maps categorical variables cleanly
-to the Cell 10-color palette.
+Setup prerequisite:
+    Copy 'cns_cell.mplstyle' and 'cell_colors.py' into your local project directory.
 
 Run:
     python3 pure_seaborn_cell.py
@@ -20,22 +20,39 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-# Add styles directory to path for color definitions
+# Add styles directory to path for color definitions if present locally or in skill
 SKILL_DIR = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(SKILL_DIR / "styles"))
 import cell_colors
 
-# 1. Apply style sheet and seaborn color palette
-STYLE_PATH = SKILL_DIR / "styles" / "cns_cell.mplstyle"
-plt.style.use(str(STYLE_PATH))
-cell_colors.apply_cell_palette_to_seaborn()
+# --- Project-Local Style Configuration ----------------------------------------
+STYLE_PATH = Path("styles/cns_cell.mplstyle")
 
-# Load seaborn example dataset or user dataframe
+
+def apply_house_style(style_file: Path | str = STYLE_PATH) -> None:
+    """Load project house style sheet and set seaborn palette."""
+    target = Path(style_file)
+    if not target.is_file():
+        if Path("cns_cell.mplstyle").is_file():
+            target = Path("cns_cell.mplstyle")
+        else:
+            raise FileNotFoundError(
+                f"Style file not found at {target}. Please copy 'cns_cell.mplstyle' "
+                "into your project directory (e.g. ./styles/cns_cell.mplstyle)."
+            )
+    plt.style.use(str(target))
+    cell_colors.apply_cell_palette_to_seaborn()
+
+
+# Load sample data
 df = sns.load_dataset("tips")
 
 
 def main() -> None:
-    # Target axes: ~110 pt wide, ~100 pt high
+    # 1. Apply unified house style
+    apply_house_style()
+
+    # 2. Target axes: ~110 pt wide, ~100 pt high
     fig, ax = plt.subplots(figsize=(2.2, 1.8))
 
     # Boxplot with scatter strip overlay

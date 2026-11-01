@@ -19,13 +19,28 @@ matplotlib.use("Agg")  # headless environment
 
 import cnsplots as cns
 
-# --- 1. Global Journal Styling (Arial + Cell Palette + Viridis) ---------------
-cns.settings.font_sans_serif = ("Arial", "Helvetica", "Helvetica Neue", "DejaVu Sans")
-cns.settings.palette_qual = "Cell"
-cns.settings.palette_seq = "viridis"
-cns.setup_matplotlib()
+# --- House Style Configuration ------------------------------------------------
+HOUSE_PALETTE = "Cell"
+DENSITY_CMAP = "viridis"
 
-# --- 2. Target Dimension Configuration ----------------------------------------
+
+def apply_house_style() -> None:
+    """Configure cnsplots with project house style: Cell palette, viridis, Arial font."""
+    # Prioritize Arial, fallback to DejaVu Sans; avoids Helvetica findfont warnings
+    cns.settings.font_sans_serif = ("Arial", "DejaVu Sans")
+    cns.settings.panel_label_fontname = "Arial"
+
+    # Fonttype 42 embeds TrueType glyphs, keeping text live & editable in Illustrator
+    cns.settings.pdf_fonttype = 42
+
+    # Both are needed: setup_matplotlib sets rcParams cycle for bare matplotlib calls,
+    # palette_qual is what cns.* plot functions and multipanel read.
+    cns.settings.palette_qual = HOUSE_PALETTE
+    cns.settings.palette_seq = DENSITY_CMAP
+    cns.setup_matplotlib(color_cycle=HOUSE_PALETTE)
+
+
+# --- Target Dimensions & Data -------------------------------------------------
 # Cell Press column limits: 1-column = 241 pt (85 mm), 2-column = 493 pt (174 mm)
 MAX_WIDTH = 493  # Cell double column width in points
 OUTPUT_PATH = "cell_multipanel.svg"
@@ -36,6 +51,10 @@ IRIS = cns.datasets.load_dataset("iris")
 
 
 def main() -> None:
+    # 1. Apply unified house style
+    apply_house_style()
+
+    # 2. Build multi-panel layout
     mp = cns.multipanel(
         max_width=MAX_WIDTH, title="Cell Press Multi-panel Layout", loc="left"
     )

@@ -79,7 +79,7 @@ def main() -> int:
             "  '  1. (Recommended) Install cnsplots (pip install cnsplots) for multi-panel flow layouts & stats annotations?'"
         )
         print(
-            "  '  2. Use the bundled cns_cell.mplstyle with native matplotlib / seaborn (Cell style, zero extra packages)?'"
+            "  '  2. Copy cns_cell.mplstyle into your project and use native matplotlib / seaborn (Cell style, zero extra packages)?'"
         )
         return 1
 

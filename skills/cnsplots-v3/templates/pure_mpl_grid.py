@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
-"""Template: Pure Matplotlib 2x2 grid using exported cns_cell.mplstyle (Mode B).
+"""Template: Pure Matplotlib 2x2 grid using project-local cns_cell.mplstyle (Mode B).
 
 Use when cnsplots is NOT installed.
-Achieves Cell Press publication aesthetic (Arial, Cell palette, 0.5pt spines, 8/7pt hierarchy)
-with zero third-party dependencies beyond standard matplotlib and numpy/pandas.
+Setup prerequisite:
+    Copy 'cns_cell.mplstyle' from the skill styles directory to your local project:
+    $ mkdir -p ./styles && cp <SKILL_DIR>/styles/cns_cell.mplstyle ./styles/
 
 Axes Sizing Principle (~100 pt):
   - In matplotlib, figsize is specified in inches.
@@ -25,10 +26,24 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 
-# Load the exported Cell style sheet
-SKILL_DIR = Path(__file__).resolve().parent.parent
-STYLE_PATH = SKILL_DIR / "styles" / "cns_cell.mplstyle"
-plt.style.use(str(STYLE_PATH))
+# --- Project-Local Style Configuration ----------------------------------------
+STYLE_PATH = Path("styles/cns_cell.mplstyle")
+
+
+def apply_house_style(style_file: Path | str = STYLE_PATH) -> None:
+    """Load project house style sheet for pure matplotlib."""
+    target = Path(style_file)
+    if not target.is_file():
+        # Also check current working directory
+        if Path("cns_cell.mplstyle").is_file():
+            target = Path("cns_cell.mplstyle")
+        else:
+            raise FileNotFoundError(
+                f"Style file not found at {target}. Please copy 'cns_cell.mplstyle' "
+                "from the skill into your project folder: 'cp <SKILL_DIR>/styles/cns_cell.mplstyle ./styles/'"
+            )
+    plt.style.use(str(target))
+
 
 # Reproducible sample data
 np.random.seed(42)
@@ -41,7 +56,10 @@ errors = [1.2, 1.5, 1.8]
 
 
 def main() -> None:
-    # 2 rows x 2 cols. Each axes is calibrated to ~100 pt (1.39 inches)
+    # 1. Apply unified house style
+    apply_house_style()
+
+    # 2. Build 2x2 grid (~100 pt axes per cell)
     fig, axes = plt.subplots(2, 2, figsize=(3.5, 3.2), constrained_layout=True)
 
     # Panel A: Multi-line plot (auto-advances through Cell 10-color cycle)
@@ -55,13 +73,12 @@ def main() -> None:
 
     # Panel B: Bar plot with error bars
     ax_b = axes[0, 1]
-    # Colors automatically cycle, or can be specified
     ax_b.bar(groups, means, yerr=errors, capsize=2, width=0.6)
     ax_b.set_title("B", loc="left", fontweight="bold")
     ax_b.set_ylabel("Expression Level")
 
     # Panel C: Scatter plot
-    # Crucial: Default marker size s=7 or s=10 fits ~100 pt axes perfectly.
+    # Crucial: Default marker size s=7 fits ~100 pt axes perfectly.
     ax_c = axes[1, 0]
     scatter_x = np.random.normal(5, 1.5, 40)
     scatter_y = 2.0 * scatter_x + np.random.normal(0, 2, 40)
@@ -74,7 +91,12 @@ def main() -> None:
     ax_d = axes[1, 1]
     data_dist = np.random.exponential(scale=2.0, size=200)
     ax_d.hist(
-        data_dist, bins=15, density=True, edgecolor="black", linewidth=0.5, alpha=0.7
+        data_dist,
+        bins=15,
+        density=True,
+        edgecolor="black",
+        linewidth=0.5,
+        alpha=0.7,
     )
     ax_d.set_title("D", loc="left", fontweight="bold")
     ax_d.set_xlabel("Decay Time")

@@ -4,7 +4,6 @@ version: 3.0.0
 upstream: https://github.com/faridrashidi/cnsplots
 description: Create, revise, and troubleshoot publication-ready scientific plots and data visualizations in Python (cnsplots, matplotlib, seaborn, scanpy), including distribution (box, violin, strip, lollipop, ridge), regression, heatmap, genomics (volcano, GSEA), survival (Kaplan-Meier, cumulative incidence), set (venn, upset), flow (sankey), classification/ROC/PR, and multi-panel figures. Prioritize whenever a user asks to plot or visualize data in Python, or requests Cell/Nature/Science-style visualization, precise physical figure dimensions (pt/mm/in), statistical plot annotations, or editable SVG/PDF publication output. Enforces a closed-loop 6-step workflow, ~100 px/pt panel calibration with zero manual font/marker overrides, defaulting to Cell palette and Arial typography. Supports native cnsplots (Mode A) and zero-dependency pure matplotlib/seaborn via bundled cns_cell.mplstyle (Mode B) with interactive fallback.
 ---
-
 # cnsplots v3
 
 Publication-ready scientific visualization in Python across major journal styles (**Cell**, **Nature**, **Science**, etc.).
@@ -59,7 +58,13 @@ python3 $SKILL_DIR/scripts/check_env.py
 * **If `cnsplots` is NOT installed** $\rightarrow$ Prompt the user with this exact choice before writing code:
   > "The `cnsplots` package is not installed in the active Python environment. Would you prefer to:
   > 1. **(Recommended) Install `cnsplots`** (`pip install cnsplots`): Enables automated multi-panel flow layouts, A/B/C labeling, and built-in statistical annotations.
-  > 2. **Use the bundled publication style sheet (`cns_cell.mplstyle`)**: Render journal-grade figures directly with native `matplotlib` / `seaborn` (defaults to Cell Press style, zero extra packages needed)."
+  > 2. **Copy `cns_cell.mplstyle` into your project**: Render journal-grade figures directly with native `matplotlib` / `seaborn` (defaults to Cell Press style, zero extra packages needed)."
+
+  If the user selects **2**, **copy `cns_cell.mplstyle` from the skill into the current project directory** (e.g. `./styles/cns_cell.mplstyle`) rather than directly referencing `$SKILL_DIR`:
+  ```bash
+  mkdir -p ./styles
+  cp $SKILL_DIR/styles/cns_cell.mplstyle ./styles/cns_cell.mplstyle
+  ```
 
 ---
 
@@ -74,6 +79,7 @@ print(df.head(3))
 ```
 
 #### Data-to-Plot Decision Guide
+
 Match the data structure to the scientific intent (consult [references/plot-catalog.md](references/plot-catalog.md) for full options):
 
 * **Categorical Group vs Continuous Value**:
@@ -96,7 +102,9 @@ Match the data structure to the scientific intent (consult [references/plot-cata
   * Gene set enrichment $\rightarrow$ `cns.gseaplot`.
 
 #### Verify Function Signature
+
 Before calling an unfamiliar function, inspect the real installed signature to prevent API hallucination:
+
 ```bash
 python3 $SKILL_DIR/scripts/inspect_api.py <function_name>
 ```
@@ -107,12 +115,12 @@ python3 $SKILL_DIR/scripts/inspect_api.py <function_name>
 
 Select the layout pattern based on panel heterogeneity and alignment requirements (see [references/composition-guide.md](references/composition-guide.md)):
 
-| Layout Case | Recommended Engine | Canvas Sizing / Column Limits |
-| :--- | :--- | :--- |
-| **Single Panel** | `cns.figure(width=..., height=...)` | 80–150 pt (Axes ~100 pt) |
-| **Uniform Repeated Grid** | `fig = cns.figure()` + `fig.subplots(nrows, ncols)` | Guarantees row/column edge alignment |
-| **Heterogeneous Multi-panel (A/B/C)** | `mp = cns.multipanel(max_width=...)` | Cell: 1-col = 241 pt, 2-col = 493 pt |
-| **Hybrid Grid in Multi-panel** | Host `mp.panel()` + `fig.add_gridspec()` | Prevents y-tick decoration misalignment |
+| Layout Case                                 | Recommended Engine                                      | Canvas Sizing / Column Limits           |
+| :------------------------------------------ | :------------------------------------------------------ | :-------------------------------------- |
+| **Single Panel**                      | `cns.figure(width=..., height=...)`                   | 80–150 pt (Axes ~100 pt)               |
+| **Uniform Repeated Grid**             | `fig = cns.figure()` + `fig.subplots(nrows, ncols)` | Guarantees row/column edge alignment    |
+| **Heterogeneous Multi-panel (A/B/C)** | `mp = cns.multipanel(max_width=...)`                  | Cell: 1-col = 241 pt, 2-col = 493 pt    |
+| **Hybrid Grid in Multi-panel**        | Host `mp.panel()` + `fig.add_gridspec()`            | Prevents y-tick decoration misalignment |
 
 > [!WARNING]
 > In `cns.multipanel()`, outer widths vary with y-axis tick label width. Never build a visual grid by calling `mp.panel()` once per cell; use `fig.subplots()` or `GridSpec` when edges must strictly align.
@@ -121,7 +129,7 @@ Select the layout pattern based on panel heterogeneity and alignment requirement
 
 ### Step 4: Build Figure with ~100 px/pt Proportions
 
-Construct the plotting script adhering to the ~100 pt sizing baseline:
+Encapsulate default house styling into a dedicated `apply_house_style()` function, then construct panels adhering to the ~100 pt sizing baseline:
 
 * **Mode A (`cnsplots`)**:
   ```python
@@ -130,32 +138,43 @@ Construct the plotting script adhering to the ~100 pt sizing baseline:
   matplotlib.use("Agg")  # required for headless runs
   import cnsplots as cns
 
-  # 1. Initialize style
-  cns.settings.font_sans_serif = (
-      "Arial",
-      "Helvetica",
-      "Helvetica Neue",
-      "DejaVu Sans",
-  )
-  cns.settings.palette_qual = "Cell"
-  cns.settings.palette_seq = "viridis"
-  cns.setup_matplotlib()
+  HOUSE_PALETTE = "Cell"
+  DENSITY_CMAP = "viridis"
 
-  # 2. Add panels (~100 pt axes baseline)
-  mp = cns.multipanel(max_width=493)  # Cell 2-column limit
-  ax_a = mp.panel("A", width=110, height=100)
-  cns.boxplot(
-      data=df,
-      x="group",
-      y="score",
-      pairs=[("Ctrl", "Treat")],
-      hue_order=["Ctrl", "Treat"],
-      ax=ax_a,
-  )
-  ax_a.set(xlabel="", ylabel="Score (a.u.)")
-```
+
+  def apply_house_style() -> None:
+      """Configure cnsplots with project house style: Cell palette, viridis, Arial font."""
+      # Prioritize Arial, fallback to DejaVu Sans; avoid Helvetica to prevent findfont warnings
+      cns.settings.font_sans_serif = ("Arial", "DejaVu Sans")
+      cns.settings.panel_label_fontname = "Arial"
+      cns.settings.pdf_fonttype = 42  # TrueType font embedding for Illustrator
+
+      # Both are needed: setup_matplotlib sets rcParams cycle for bare matplotlib calls,
+      # palette_qual is what cns.* plot functions and multipanel read.
+      cns.settings.palette_qual = HOUSE_PALETTE
+      cns.settings.palette_seq = DENSITY_CMAP
+      cns.setup_matplotlib(color_cycle=HOUSE_PALETTE)
+
+
+  def main() -> None:
+      apply_house_style()
+
+      # Add panels (~100 pt axes baseline)
+      mp = cns.multipanel(max_width=493)  # Cell 2-column limit
+      ax_a = mp.panel("A", width=110, height=100)
+      cns.boxplot(
+          data=df,
+          x="group",
+          y="score",
+          pairs=[("Ctrl", "Treat")],
+          hue_order=["Ctrl", "Treat"],
+          ax=ax_a,
+      )
+      ax_a.set(xlabel="", ylabel="Score (a.u.)")
+  ```
 
 * **Mode B (Pure Matplotlib / Seaborn Fallback)**:
+  Prerequisite: Copy `cns_cell.mplstyle` into `./styles/cns_cell.mplstyle`.
   ```python
   from pathlib import Path
   import matplotlib
@@ -163,13 +182,24 @@ Construct the plotting script adhering to the ~100 pt sizing baseline:
   matplotlib.use("Agg")
   import matplotlib.pyplot as plt
 
-  # 1. Load exported Cell style
-  STYLE_PATH = Path("<SKILL_DIR>/styles/cns_cell.mplstyle")
-  plt.style.use(str(STYLE_PATH))
+  STYLE_PATH = Path("styles/cns_cell.mplstyle")
 
-  # 2. 2x2 grid (figsize in inches: ~100 pt per axes + padding = 3.5 x 3.2 in)
-  fig, axes = plt.subplots(2, 2, figsize=(3.5, 3.2), constrained_layout=True)
-```
+
+  def apply_house_style(style_file: Path | str = STYLE_PATH) -> None:
+      """Load project house style sheet for pure matplotlib."""
+      target = Path(style_file)
+      if not target.is_file():
+          target = Path("cns_cell.mplstyle")
+      plt.style.use(str(target))
+
+
+  def main() -> None:
+      apply_house_style()
+
+      # 2x2 grid (figsize in inches: ~100 pt per axes + padding = 3.5 x 3.2 in)
+      fig, axes = plt.subplots(2, 2, figsize=(3.5, 3.2), constrained_layout=True)
+      ...
+  ```
 
 ---
 
@@ -180,6 +210,8 @@ Construct the plotting script adhering to the ~100 pt sizing baseline:
    ```python
    stats_df = cns.get_comparison_results(ax_a)
    print(stats_df[["group1", "group2", "test", "pvalue_raw", "significant", "annotation"]])
+   ```
+
 ```
 2. **KDE KS-Test Cleanup**:
    `cns.kdeplot` with a 2-level `hue` annotates an unrequested Kolmogorov-Smirnov test. If unwanted, remove it:
@@ -197,6 +229,8 @@ Construct the plotting script adhering to the ~100 pt sizing baseline:
    ```python
    # bbox_inches=None ensures printed width matches exact journal column width
    cns.savefig("outputs/figure.svg", bbox_inches=None)
+   ```
+
 ```
 2. **Post-save Verification**:
    * Confirm the output file exists and is non-empty.
@@ -207,6 +241,7 @@ Construct the plotting script adhering to the ~100 pt sizing baseline:
 
      Image.open("figure.png").convert("L").save("figure_grey.png")
 ```
+
 3. **Report**: Deliver the full runnable script, output paths, and all statistical assumptions (tests, comparison direction, group orders).
 
 ---
@@ -214,21 +249,25 @@ Construct the plotting script adhering to the ~100 pt sizing baseline:
 ## Bundled Assets Index
 
 ### Styles & Colors
+
 * [`styles/cns_cell.mplstyle`](styles/cns_cell.mplstyle): Standalone Matplotlib style sheet with all 32+ Cell Press rcParams (Arial, Cell palette cycler, 0.5pt spines, 8/7pt hierarchy, 300 dpi vector settings).
 * [`styles/cell_colors.py`](styles/cell_colors.py): Python module with `CELL_HEX`, named constants (`CELL_RED`, `CELL_TEAL`, etc.), and `apply_cell_palette_to_seaborn()`.
 
 ### Scripts
+
 * [`scripts/check_env.py`](scripts/check_env.py): Probes Python, cnsplots, matplotlib, mutool, and reports Mode A vs Mode B status.
 * [`scripts/export_mplstyle.py`](scripts/export_mplstyle.py): Validates or regenerates `cns_cell.mplstyle`.
 * [`scripts/inspect_api.py`](scripts/inspect_api.py): Introspects installed `cnsplots` public functions to prevent API hallucinations.
 
 ### Templates
+
 * [`templates/cns_multipanel_cell.py`](templates/cns_multipanel_cell.py): Mode A multi-panel publication template.
 * [`templates/cns_single_figure.py`](templates/cns_single_figure.py): Mode A single-panel boxplot with comparisons.
 * [`templates/pure_mpl_grid.py`](templates/pure_mpl_grid.py): Mode B pure matplotlib 2x2 grid.
 * [`templates/pure_seaborn_cell.py`](templates/pure_seaborn_cell.py): Mode B pure seaborn boxplot + stripplot overlay.
 
 ### Reference Guides
+
 * [`references/plot-catalog.md`](references/plot-catalog.md): Complete catalog of 30+ plot functions, returns, and statistical accessors.
 * [`references/journal-specs.md`](references/journal-specs.md): Specifications for Cell Press (default), Nature, and Science (column widths, font caps, line weights, resolution).
 * [`references/panel-sizing-100px.md`](references/panel-sizing-100px.md): The 100 px golden ratio, point-to-inch conversions, and typography proportions.
