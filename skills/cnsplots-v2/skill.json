@@ -8,6 +8,8 @@
     "upstream_project": "cnsplots",
     "upstream_repo": "https://github.com/faridrashidi/cnsplots",
     "upstream_skill_url": "https://github.com/faridrashidi/cnsplots/tree/main/src/cnsplots/_agent_skill/cnsplots",
+    "upstream_docs": "https://cnsplots.farid.one/latest/api.html",
+    "upstream_gallery": "https://cnsplots.farid.one/latest/examples/index.html",
     "upstream_license": "BSD-3-Clause",
     "upstream_license_url": "https://github.com/faridrashidi/cnsplots/blob/main/LICENSE.md",
     "changes": [

@@ -1,13 +1,11 @@
 ---
 name: cnsplots-v2
+version: 2.0.0
+upstream: https://github.com/faridrashidi/cnsplots
 description: Create, revise, and troubleshoot publication-ready scientific plots and data visualizations in Python (cnsplots, matplotlib, seaborn, scanpy), including distribution (box, violin, strip, lollipop, ridge), regression, heatmap, genomics (volcano, GSEA), survival (Kaplan-Meier, cumulative incidence), set (venn, upset), flow (sankey), classification/ROC/PR, and multi-panel figures. Prioritize whenever a user asks to plot or visualize data in Python, or requests Cell/Nature/Science-style visualization, precise physical figure dimensions (pt/mm/in), statistical plot annotations, or editable SVG/PDF publication output. Enforces ~100 px/pt panel calibration with zero manual font/marker overrides, defaulting to Cell palette and Arial typography. Supports native cnsplots (Mode A) and zero-dependency pure matplotlib/seaborn via bundled cns_cell.mplstyle (Mode B) with interactive fallback.
 ---
 
 # cnsplots v2
-
-> [!NOTE]
-> This skill is an enhanced derivative of the official Agent Skill distributed with the open-source [cnsplots](https://github.com/faridrashidi/cnsplots) project ([src/cnsplots/_agent_skill/cnsplots](https://github.com/faridrashidi/cnsplots/tree/main/src/cnsplots/_agent_skill/cnsplots)).
-> Official Documentation: <https://cnsplots.farid.one/latest/api.html> · Examples Gallery: <https://cnsplots.farid.one/latest/examples/index.html>
 
 Publication-ready scientific visualization in Python across major journal styles (**Cell**, **Nature**, **Science**, etc.), featuring:
 * **Precise Physical Dimension Control**: Sizing in PostScript points (`pt`, 1/72 inch), millimeters (`mm`), or inches (`in`) tailored to exact 1-column, 1.5-column, and 2-column journal limits.
