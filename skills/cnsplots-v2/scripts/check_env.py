@@ -58,9 +58,11 @@ def main() -> int:
     if cns_ok:
         print("[READY] Mode A: Full cnsplots active.")
         print("  Can use cns.multipanel(), cns.figure(), auto statistical annotations.")
-        print("  Prioritize Cell palette: cns.settings.palette_qual = 'Cell'")
         print(
-            "  Prioritize Arial font  : cns.settings.font_sans_serif = ('Arial', 'Helvetica', ...)"
+            "  Default palette: cns.settings.palette_qual = 'Cell' (Nature/Science/etc. also supported)"
+        )
+        print(
+            "  Default font   : cns.settings.font_sans_serif = ('Arial', 'Helvetica', ...)"
         )
         return 0
     else:
@@ -75,7 +77,7 @@ def main() -> int:
             "  '  1. (推荐) 安装 cnsplots (pip install cnsplots)，获得自动多子图排版与统计标注？'"
         )
         print(
-            "  '  2. 使用内置导出的 cns_cell.mplstyle，通过原生 matplotlib / seaborn 绘制 Cell 期刊风格图表（无需安装新包）？'"
+            "  '  2. 使用内置导出的出版级样式表 (cns_cell.mplstyle)，通过原生 matplotlib / seaborn 绘制顶刊出版风格图表（默认采用 Cell 样式，无需安装新包）？'"
         )
         return 1
 

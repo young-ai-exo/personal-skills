@@ -2,16 +2,16 @@
   "name": "cnsplots-v2",
   "version": "2.0.0",
   "updated": "2026-11-01",
-  "summary": "Publication-quality scientific figures in Python following Cell Press standards: Cell 10-color palette, Arial typography, ~100 px/pt panel proportions, and dual execution modes (native cnsplots or pure matplotlib/seaborn via cns_cell.mplstyle).",
+  "summary": "Publication-quality scientific figures in Python for major journals (Cell, Nature, Science): ~100 px/pt panel calibration, zero manual font/marker overrides, and dual execution modes (native cnsplots or pure matplotlib/seaborn via standalone mplstyle), defaulting to Cell palette and Arial typography.",
   "provenance": {
     "relationship": "major-revision",
     "upstream_project": "cnsplots",
     "changes": [
-      "Exported complete cnsplots Cell style as standalone styles/cns_cell.mplstyle for zero-dependency fallback.",
+      "Exported standalone styles/cns_cell.mplstyle for zero-dependency fallback via pure matplotlib/seaborn.",
       "Added proactive environment branching: prompt user to choose between installing cnsplots or using pure mplstyle.",
       "Enforced ~100 px/pt (80, 100, 120, 150) panel sizing baseline and strict prohibition of font/marker manual overrides.",
-      "Prioritized Cell Press qualitative 10-color palette globally.",
-      "Prioritized Arial sans-serif typography across all templates and workflows.",
+      "Set Cell Press 10-color palette as the default qualitative palette, with support for Nature, Science, and other journal styles.",
+      "Set Arial sans-serif typography as the default font hierarchy across templates and workflows.",
       "Streamlined architecture into clean styles, scripts, templates, and focused references, removing redundant files."
     ]
   }
