@@ -138,9 +138,13 @@ svg.fonttype: none
 """
 
 
-def build_cell_colors(hex_colors: list[str], rgb_colors: list[tuple[float, float, float]]) -> str:
+def build_cell_colors(
+    hex_colors: list[str], rgb_colors: list[tuple[float, float, float]]
+) -> str:
     """Build cell_colors.py from the Cell hex and RGB values."""
-    hex_lines = "\n".join(f'    "{color}",  # {index}' for index, color in enumerate(hex_colors))
+    hex_lines = "\n".join(
+        f'    "{color}",  # {index}' for index, color in enumerate(hex_colors)
+    )
     constant_lines = "\n".join(
         f"{name} = CELL_HEX[{index}]" for index, name in enumerate(CELL_NAMES)
     )
@@ -225,7 +229,9 @@ def parse_args() -> argparse.Namespace:
     """Parse command-line arguments."""
     parser = argparse.ArgumentParser(description=__doc__)
     group = parser.add_mutually_exclusive_group()
-    group.add_argument("--write", action="store_true", help="Regenerate both style files.")
+    group.add_argument(
+        "--write", action="store_true", help="Regenerate both style files."
+    )
     group.add_argument(
         "--check", action="store_true", help="Fail if either file drifts from cnsplots."
     )

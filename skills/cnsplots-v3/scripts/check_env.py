@@ -57,7 +57,9 @@ def main() -> int:
 
     mutool = shutil.which("mutool")
     mutool_status = (
-        f"found at {mutool}" if mutool else "missing (SVG falls back to plain matplotlib)"
+        f"found at {mutool}"
+        if mutool
+        else "missing (SVG falls back to plain matplotlib)"
     )
     emit(f"mutool      : {mutool_status}")
 
@@ -70,7 +72,9 @@ def main() -> int:
 
     if mpl_ok:
         emit("[READY] Mode B: pure matplotlib available with cns_cell.mplstyle.")
-        seaborn_status = "available" if sns_ok else "MISSING (seaborn template unavailable)"
+        seaborn_status = (
+            "available" if sns_ok else "MISSING (seaborn template unavailable)"
+        )
         emit(f"  seaborn: {seaborn_status}")
         emit("  Copy styles/cns_cell.mplstyle into the project before running Mode B.")
         emit("  See SKILL.md Step 1 for the Mode A vs Mode B choice.")

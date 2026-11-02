@@ -2,8 +2,9 @@
 
 Source: https://cnsplots.farid.one/latest/examples/showcase.html
 Copyright Farid Rashidi, BSD-3-Clause. Not our work.
-Adapted only for the cnsplots-v3 house style: unit="pt", 144 display dpi
-(the upstream layout is tuned for it), 360 export dpi, opaque background.
+Adapted for the cnsplots-v3 house style: unit="pt", 360 display/export dpi,
+Cell palette, Arial-first fonts, opaque background. Pixel-based pad_left and
+pad_top values are rescaled by 360/144 = 2.5 to keep the upstream geometry.
 See README.md in this directory.
 
 All mp.panel(width, height, ...) values below are in points.
@@ -14,6 +15,31 @@ from pathlib import Path
 
 import cnsplots as cns
 import matplotlib.image as mpimg
+
+HOUSE_PALETTE = "Cell"
+DENSITY_CMAP = "viridis"
+FONT_SANS_SERIF = (
+    "Arial",
+    "Helvetica",
+    "Nimbus Sans",
+    "Liberation Sans",
+    "DejaVu Sans",
+)
+
+
+def apply_house_style() -> None:
+    """Configure cnsplots with the skill's Cell palette, Arial fonts, and 360 dpi."""
+    cns.settings.font_sans_serif = FONT_SANS_SERIF
+    cns.settings.panel_label_fontname = None
+    cns.settings.pdf_fonttype = 42
+    cns.settings.svg_fonttype = "none"
+    cns.settings.palette_qual = HOUSE_PALETTE
+    cns.settings.palette_seq = DENSITY_CMAP
+    cns.settings.figure_dpi = 360
+    cns.settings.savefig_dpi = 360
+    cns.settings.savefig_transparent = False
+    cns.setup_matplotlib(color_cycle=HOUSE_PALETTE, color_map=DENSITY_CMAP)
+
 
 (
     iris_df,
@@ -73,10 +99,7 @@ def _embed_detached_axes(host_ax, detached_axes, *, xpad=0.0, ypad=0.0):
     cns.utils._capture_detached_axes_layout(host_ax, detached_axes=detached_axes)
 
 
-cns.settings.figure_dpi = 144  # upstream layout is tuned for 144 display dpi
-cns.settings.savefig_dpi = 360
-cns.settings.savefig_transparent = False
-
+apply_house_style()
 cns.settings.title_fontweight = "normal"
 mp = cns.multipanel(
     max_width=485, title="Figure 1", title_fontweight="bold", loc="left", unit="pt"
@@ -152,7 +175,7 @@ ax.set_title("Pieplot")
 ax.get_legend().set_title(None)
 
 # Panel G: vennplot
-mp.panel("G", 40, 40, pad_left=55, margin_right=45, color_cycle="Tableau")
+mp.panel("G", 40, 40, pad_left=137.5, margin_right=45, color_cycle="Tableau")
 cns.vennplot(gene_sets, labels=("Set A", "Set B", "Set C"))
 mp.get_axes("G").set_title("Vennplot")
 
@@ -209,17 +232,17 @@ for text in ax.get_legend().get_texts():
 ax.set_title("Rocplot")
 
 # Panel N: sankeyplot
-mp.panel("N", 30, 100, pad_left=-30, color_cycle="Ecotyper4")
+mp.panel("N", 30, 100, pad_left=-75, color_cycle="Ecotyper4")
 ax = cns.sankeyplot(tips_df, x=["day", "sex"], label_rotation=90)
 ax.set_title("Sankeyplot")
 
 # Panel O: ridgeplot
-mp.panel("O", 80, 35, pad_left=110, margin_right=0)
+mp.panel("O", 80, 35, pad_left=275, margin_right=0)
 ax = cns.ridgeplot(data=iris_df, x="petal_length", y="species")
 ax.set_title("Ridgeplot")
 
 # Panel P: slopeplot
-mp.panel("P", 80, 65, below="O", margin_top=10, pad_top=-5, margin_right=0)
+mp.panel("P", 80, 65, below="O", margin_top=10, pad_top=-12.5, margin_right=0)
 ax = cns.slopeplot(data=slope_df, x="site", y="value", hue="label", pair="pair")
 ax.set_title("Slopeplot")
 
@@ -254,8 +277,8 @@ ax.axvline(
 )
 cns.take_legend_out()
 
-# Panel R: heatmapplot
-mp.panel("R", 190, 90, margin_top=-10, margin_right=0)
+# Panel R: heatmapplot (taller panel so the three legends have room)
+mp.panel("R", 190, 110, margin_top=-10, margin_right=0)
 cmp = cns.heatmapplot(
     blobs,
     label="Z-score",
@@ -269,16 +292,25 @@ cmp = cns.heatmapplot(
     row_dendrogram=True,
     xlabel="Genes",
     ylabel="Patients",
-    legend_hpad=-1,
-    legend_vpad=0,
-    legend_hgap=3.5,
-    legend_vgap=0,
-    legend_width=3.0,
-    legend_order=["Ensemble", "blobs", "Z-score"],
+    legend_hpad=1,
+    legend_vpad=2,
+    legend_hgap=6.0,
+    legend_vgap=2.0,
+    legend_width=25.0,
+    legend_order=["Z-score", "Ensemble", "blobs"],
+    legend_kws={"ticks": [-12.0, 11.0], "format": "%.0f"},
     xticklabels_rotation=20,
     xlabel_labelpad=0,
 )
 cmp.ax.set_title("Heatmapplot")
+
+# cnsplots 0.8.0 relayouts on every draw. Exporting at a different dpi than the
+# build canvas would trigger that relayout and shift panels, so detach the draw
+# handler after the layout has converged.
+assert mp.fig is not None
+assert mp._draw_event_cid is not None
+mp.fig.canvas.mpl_disconnect(mp._draw_event_cid)
+mp._draw_event_cid = None
 
 # Save final figure next to this script unless the gallery env var is set.
 gallery_output_dir = Path(

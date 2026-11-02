@@ -77,7 +77,9 @@ def main() -> int:
 
     # Panel B: Scatterplot (~120 pt wide)
     ax_b = mp.panel("B", width=130, height=110)
-    cns.scatterplot(data=iris, x="sepal_length", y="petal_length", hue="species", ax=ax_b)
+    cns.scatterplot(
+        data=iris, x="sepal_length", y="petal_length", hue="species", ax=ax_b
+    )
     ax_b.set(xlabel="Sepal Length (cm)", ylabel="Petal Length (cm)")
     cns.take_legend_out(title="Species", ax=ax_b)
 

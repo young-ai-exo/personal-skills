@@ -1,6 +1,6 @@
 ---
 name: cnsplots-v3
-version: 3.0.4
+version: 3.0.5
 upstream: https://github.com/faridrashidi/cnsplots
 description: Create, revise, and troubleshoot publication-ready scientific plots and data visualizations in Python (cnsplots, matplotlib, seaborn, scanpy), including distribution (box, violin, strip, lollipop, ridge), regression, heatmap, genomics (volcano, GSEA), survival (Kaplan-Meier, cumulative incidence), set (venn, upset), flow (sankey), classification/ROC/PR, and multi-panel figures. Prioritize whenever a user asks to plot or visualize data in Python, or requests Cell/Nature/Science-style visualization, precise physical figure dimensions (pt/mm/in), statistical plot annotations, or editable SVG/PDF publication output. Enforces a closed-loop 6-step workflow, ~100 pt panel calibration with no font or marker blow-ups, defaulting to Cell palette and Arial-first typography. Supports native cnsplots (Mode A) and pure matplotlib/seaborn via bundled cns_cell.mplstyle (Mode B) with interactive fallback.
 ---
@@ -323,7 +323,7 @@ Encapsulate default house styling into a dedicated `apply_house_style()` functio
 
 ### Reference Showcases
 
-* [`templates/upstream-showcase/README.md`](templates/upstream-showcase/README.md): vendored cnsplots Figure 1 and Figure 2 sources, with run notes. These keep the upstream 144 display dpi because their pixel offsets are tuned for it; export is 360.
+* [`templates/upstream-showcase/README.md`](templates/upstream-showcase/README.md): vendored cnsplots Figure 1 and Figure 2 sources, re-tuned to the house style (360 dpi, Cell palette, Arial-first fonts, pt units) with run notes and the export workaround.
 * [`templates/upstream-showcase/figure1.py`](templates/upstream-showcase/figure1.py): 18-panel upstream showcase.
 * [`templates/upstream-showcase/figure2.py`](templates/upstream-showcase/figure2.py): 13-panel upstream showcase with images and detached axes.
 
