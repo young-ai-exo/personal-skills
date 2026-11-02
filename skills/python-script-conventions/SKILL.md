@@ -111,6 +111,7 @@ import numpy as np
 import pandas as pd
 from loguru import logger
 
+
 # =============================================================================
 # 2. CONSTANTS & ENUMS (Domain Markers, Column Definitions)
 # =============================================================================
@@ -120,7 +121,9 @@ class DataCol(StrEnum):
     LOG2FC = "log2fc"
     STATUS = "status"
 
+
 REQUIRED_COLUMNS = [DataCol.GENE_ID, DataCol.PVALUE, DataCol.LOG2FC]
+
 
 # =============================================================================
 # 3. CONFIGURATION (Immutable Parameter Container)
@@ -128,10 +131,12 @@ REQUIRED_COLUMNS = [DataCol.GENE_ID, DataCol.PVALUE, DataCol.LOG2FC]
 @dataclass(kw_only=True, frozen=True)
 class Config:
     """Immutable runtime configuration container for data processing."""
+
     input_path: Path
     output_dir: Path
     p_value_threshold: float = 0.05
     log2fc_cutoff: float = 1.0
+
 
 # =============================================================================
 # 4. FUNCTIONAL CORE (Pure, Trusted Transformation Functions)
@@ -144,9 +149,8 @@ def annotate_hits(df: pd.DataFrame, config: Config) -> pd.DataFrame:
     is_sig = df[DataCol.PVALUE] < config.p_value_threshold
     is_strong = df[DataCol.LOG2FC].abs() >= config.log2fc_cutoff
 
-    return df.assign(
-        **{DataCol.STATUS: np.where(is_sig & is_strong, "hit", "non_hit")}
-    )
+    return df.assign(**{DataCol.STATUS: np.where(is_sig & is_strong, "hit", "non_hit")})
+
 
 # =============================================================================
 # 5. IMPERATIVE SHELL (Boundary Validation, I/O Orchestration, CLI Entry Point)
@@ -155,13 +159,18 @@ def parse_args() -> argparse.Namespace:
     """Parse command-line arguments."""
     parser = argparse.ArgumentParser(description="Process bioinformatics hits.")
     parser.add_argument("--input", type=Path, required=True, help="Input CSV path.")
-    parser.add_argument("--output-dir", type=Path, default=Path("outputs"), help="Output directory.")
+    parser.add_argument(
+        "--output-dir", type=Path, default=Path("outputs"), help="Output directory."
+    )
     return parser.parse_args()
+
 
 def main() -> int:
     """Orchestrate I/O boundary, validate schema, and execute functional core."""
     args = parse_args()
-    config = Config(input_path=args.input.resolve(), output_dir=args.output_dir.resolve())
+    config = Config(
+        input_path=args.input.resolve(), output_dir=args.output_dir.resolve()
+    )
     config.output_dir.mkdir(parents=True, exist_ok=True)
 
     try:
@@ -170,7 +179,9 @@ def main() -> int:
         # Fail-Fast Boundary Contract: validate schema ONCE at entry
         missing_cols = set(REQUIRED_COLUMNS) - set(df_raw.columns)
         if missing_cols:
-            logger.error(f"Missing required columns in {config.input_path}: {sorted(missing_cols)}")
+            logger.error(
+                f"Missing required columns in {config.input_path}: {sorted(missing_cols)}"
+            )
             return 1
 
         # Execute Trusted Functional Core
@@ -178,11 +189,14 @@ def main() -> int:
 
         out_path = config.output_dir / "annotated_results.csv"
         df_processed.to_csv(out_path, index=False)
-        logger.info(f"Results successfully saved to {out_path} ({len(df_processed):,} rows)")
+        logger.info(
+            f"Results successfully saved to {out_path} ({len(df_processed):,} rows)"
+        )
         return 0
     except Exception as e:
         logger.exception(f"Fatal execution error: {e}")
         return 1
+
 
 if __name__ == "__main__":
     sys.exit(main())
@@ -202,6 +216,7 @@ In projects with a shared `src/` directory, centralize logging configuration rat
 # src/utils/logging.py
 import sys
 from loguru import logger
+
 
 def setup_logger(verbose: bool = False) -> None:
     """Configure unified Loguru output format across all workflow scripts."""
@@ -251,6 +266,7 @@ def main() -> int:
         logger.exception(f"Fatal execution error: {e}")
         return 1
 
+
 if __name__ == "__main__":
     sys.exit(main())
 ```
@@ -273,8 +289,10 @@ from loguru import logger
 
 P = ParamSpec("P")
 
+
 def log_filter_step(func: Callable[P, pd.DataFrame]) -> Callable[P, pd.DataFrame]:
     """Log DataFrame row retention metrics before and after a transformation step."""
+
     @functools.wraps(func)
     def wrapper(*args: P.args, **kwargs: P.kwargs) -> pd.DataFrame:
         df_in = next((arg for arg in args if isinstance(arg, pd.DataFrame)), None)
@@ -287,12 +305,14 @@ def log_filter_step(func: Callable[P, pd.DataFrame]) -> Callable[P, pd.DataFrame
                 f"[{func.__name__}] {n_in:,} -> {n_out:,} rows (dropped {dropped:,}, {pct:.1f}% kept)"
             )
         return result
+
     return wrapper
 ```
 
 Example usage in an analysis pipeline:
 ```python
 from utils.decorators import log_filter_step
+
 
 @log_filter_step
 def filter_quality_variants(df: pd.DataFrame, config: Config) -> pd.DataFrame:
@@ -350,6 +370,7 @@ def calculate_enrichment(df: pd.DataFrame, config: Config) -> pd.DataFrame:
             df[col] = df[col].fillna("N/A")
     ...
 
+
 # ✅ GOOD: Trusted Core logic (High-signal & clean)
 def calculate_enrichment(df: pd.DataFrame, config: Config) -> pd.DataFrame:
     """Calculate enrichment scores."""
@@ -374,7 +395,9 @@ Do not bury multiple conditional expressions in a single unreadable line. Assign
 
 ```python
 # ❌ Hard to review: dense inline conditions
-df_hits = df.loc[(df["p_val"] < 0.05) & (df["fc"].abs() >= 1.5) & (df["count"] > 10)].copy()
+df_hits = df.loc[
+    (df["p_val"] < 0.05) & (df["fc"].abs() >= 1.5) & (df["count"] > 10)
+].copy()
 
 # ✅ Easy to review: named domain conditions
 is_significant = df[DataCol.PVALUE] < config.p_value_threshold
@@ -404,15 +427,13 @@ Keep each step to 1–3 lines. When chaining operations, format multi-line `.ass
 
 ```python
 # ✅ Highly reviewable: formatted .assign() with one logical transformation per line
-df_annotated = (
-    df_raw
-    .loc[is_quality_pass]
-    .assign(
-        **{
-            DataCol.NORM_COUNT: lambda d: d[DataCol.RAW_COUNT] / d[DataCol.TOTAL_READS] * 1e6,
-            DataCol.STATUS: np.where(is_sig_effect, "enriched", "depleted"),
-        }
-    )
+df_annotated = df_raw.loc[is_quality_pass].assign(
+    **{
+        DataCol.NORM_COUNT: lambda d: (
+            d[DataCol.RAW_COUNT] / d[DataCol.TOTAL_READS] * 1e6
+        ),
+        DataCol.STATUS: np.where(is_sig_effect, "enriched", "depleted"),
+    }
 )
 ```
 
@@ -447,6 +468,7 @@ Use `@dataclass(kw_only=True, frozen=True)`. Do NOT set `slots=True` by default:
 @dataclass(kw_only=True, frozen=True)
 class Config:
     """Runtime configuration container (can also be named AnalysisConfig, FilterConfig, etc.)."""
+
     input_path: Path
     output_dir: Path
     min_reads: int = 10
@@ -475,6 +497,7 @@ def compute_metrics(df: pd.DataFrame, cutoff: float) -> pd.DataFrame:
         Filtered metrics.
     """
     ...
+
 
 # ✅ GOOD: High-signal, single-line docstring
 def compute_metrics(df: pd.DataFrame, cutoff: float) -> pd.DataFrame:
