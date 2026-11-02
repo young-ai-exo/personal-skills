@@ -22,6 +22,7 @@ import numpy as np
 mpl.use("Agg")
 
 STYLE_PATH = pathlib.Path("styles/cns_cell.mplstyle")
+FIGSIZE_IN = (3.5, 3.2)  # inches; on matplotlib >=3.11 use (3.5, 3.2, "in")
 
 
 def apply_house_style(style_file: pathlib.Path | str = STYLE_PATH) -> None:
@@ -37,7 +38,7 @@ def main() -> int:
     apply_house_style()
     rng = np.random.default_rng(42)
 
-    fig, axes = plt.subplots(2, 2, figsize=(3.5, 3.2), constrained_layout=True)
+    fig, axes = plt.subplots(2, 2, figsize=FIGSIZE_IN, constrained_layout=True)
 
     # Panel A: Multi-line plot
     x = np.linspace(0, 10, 100)

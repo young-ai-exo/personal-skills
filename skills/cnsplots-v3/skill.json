@@ -1,6 +1,6 @@
 {
   "name": "cnsplots-v3",
-  "version": "3.0.2",
+  "version": "3.0.4",
   "updated": "2026-11-02",
   "summary": "Publication-ready scientific visualization in Python across major journals (Cell default, Nature, Science). Features an actionable 6-step closed-loop workflow (environment -> data profiling & plot mapping -> layout architecture & budgeting -> ~100 pt build with no font or marker blow-ups -> statistical truth extraction & cleanup -> output verification), dual execution modes (cnsplots native or pure matplotlib/seaborn via standalone cns_cell.mplstyle; seaborn optional), 360 dpi display/export, explicit pt units, and a dedicated references/plot-catalog.md.",
   "provenance": {
@@ -24,9 +24,11 @@
       "Enforced copying cns_cell.mplstyle into project directories for isolated, reproducible pure matplotlib/seaborn execution.",
       "Generated cns_cell.mplstyle and cell_colors.py from cns.palettes('Cell') and added a --check drift test in export_mplstyle.py.",
       "Standardized final delivery on PDF (SVG for editing, PNG preview only) and visual inspection instead of file-existence scripts.",
-      "Added examples/ with a measured pt/px/dpi/bbox_inches walkthrough, a pure-matplotlib demo, a contact sheet, and measurements.csv.",
       "Made units explicit: cns.figure(..., unit='pt'), multipanel(..., unit='pt'), and renamed the sizing reference to panel-sizing-100pt.md.",
-      "Unified display, preview, and export dpi at 360."
+      "Unified display, preview, and export dpi at 360.",
+      "Vendored the cnsplots Figure 1 and Figure 2 showcases under templates/upstream-showcase/ with pt units, 360 export dpi, and the upstream 144 display dpi needed for their pixel-tuned layout.",
+      "Documented matplotlib 3.10 vs 3.11 figsize units; 3.11+ examples use the explicit (width, height, unit) form.",
+      "Showcase scripts emit PDF and SVG next to the scripts by default."
     ]
   }
 }

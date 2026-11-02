@@ -67,7 +67,30 @@ ax_d = mp.panel("D", width=80, height=80)
 
 ## 4. Applying in Mode B (Pure Matplotlib / Seaborn)
 
-Matplotlib expects `figsize=(width_in_inches, height_in_inches)`.
+Matplotlib's `figsize` units changed across versions:
+
+- **matplotlib 3.10.x**: `figsize` is `(width_in, height_in)` only. The
+  documentation says "Figure dimension (width, height) in inches"; there is no
+  `unit=` argument. Convert with `pt / 72`.
+- **matplotlib 3.11+**: `figsize` accepts `(width, height, unit)`, where
+  `unit` is `"in"`, `"cm"`, or `"px"`. Use `(width, height, "in")` to make the
+  unit explicit. A 2-tuple is still interpreted as inches. `set_size_inches()`
+  remains inches-only.
+
+The installed cnsplots 0.8.0 environment uses matplotlib 3.10.9, so the
+templates use the 2-tuple. On 3.11+, add `"in"` explicitly:
+
+```python
+# matplotlib 3.10.x
+FIGSIZE_IN = (3.5, 3.2)  # inches only
+
+# matplotlib 3.11+
+FIGSIZE = (3.5, 3.2, "in")  # explicit unit
+```
+
+`cns.figure(..., unit="pt" | "in" | "mm")` is cnsplots's own API and is
+independent of the matplotlib version.
+
 Conversion formula:
 $$\text{inches} = \frac{\text{points}}{72}$$
 

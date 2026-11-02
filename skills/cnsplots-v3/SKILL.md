@@ -1,6 +1,6 @@
 ---
 name: cnsplots-v3
-version: 3.0.2
+version: 3.0.4
 upstream: https://github.com/faridrashidi/cnsplots
 description: Create, revise, and troubleshoot publication-ready scientific plots and data visualizations in Python (cnsplots, matplotlib, seaborn, scanpy), including distribution (box, violin, strip, lollipop, ridge), regression, heatmap, genomics (volcano, GSEA), survival (Kaplan-Meier, cumulative incidence), set (venn, upset), flow (sankey), classification/ROC/PR, and multi-panel figures. Prioritize whenever a user asks to plot or visualize data in Python, or requests Cell/Nature/Science-style visualization, precise physical figure dimensions (pt/mm/in), statistical plot annotations, or editable SVG/PDF publication output. Enforces a closed-loop 6-step workflow, ~100 pt panel calibration with no font or marker blow-ups, defaulting to Cell palette and Arial-first typography. Supports native cnsplots (Mode A) and pure matplotlib/seaborn via bundled cns_cell.mplstyle (Mode B) with interactive fallback.
 ---
@@ -212,6 +212,7 @@ Encapsulate default house styling into a dedicated `apply_house_style()` functio
   mpl.use("Agg")
 
   STYLE_PATH = Path("styles/cns_cell.mplstyle")
+  FIGSIZE_IN = (3.5, 3.2)  # inches (matplotlib <3.11); use (3.5, 3.2, "in") on 3.11+
 
 
   def apply_house_style(style_file: Path | str = STYLE_PATH) -> None:
@@ -225,12 +226,15 @@ Encapsulate default house styling into a dedicated `apply_house_style()` functio
   def main() -> None:
       apply_house_style()
 
-      # 2x2 grid (figsize is inches: 100 pt = 100/72 in; ~100 pt per axes + padding = 3.5 x 3.2 in)
-      fig, axes = plt.subplots(2, 2, figsize=(3.5, 3.2), constrained_layout=True)
+      # 2x2 grid (~100 pt per axes + padding); figsize uses inches here (3.11+: add "in")
+      fig, axes = plt.subplots(2, 2, figsize=FIGSIZE_IN, constrained_layout=True)
       ...
   ```
 
-  Mode B `figsize` is always in inches; convert with `pt / 72`. The style sheet sets `figure.dpi` and `savefig.dpi` to 360.
+  Matplotlib `figsize` units:
+  * **3.10.x**: `(width_in, height_in)` only; no `unit=` argument.
+  * **3.11+**: `(width, height, unit)` with `"in"`, `"cm"`, or `"px"`; use `(width, height, "in")` to make the unit explicit. A 2-tuple still means inches. `set_size_inches()` remains inches-only.
+  Convert with `pt / 72`. The installed cnsplots 0.8.0 environment uses matplotlib 3.10.9, so the templates keep the 2-tuple; add `"in"` when you run on 3.11+. The `(width, height, unit)` form also belongs to `cns.figure(..., unit="pt" | "in" | "mm")`, which is a cnsplots API independent of matplotlib. The style sheet sets `figure.dpi` and `savefig.dpi` to 360.
 
 ---
 
@@ -274,7 +278,7 @@ Encapsulate default house styling into a dedicated `apply_house_style()` functio
    # bbox_inches=None keeps the full canvas at the configured column width.
    cns.savefig("outputs/figure.pdf", bbox_inches=None, transparent=False)
    ```
-   Save an SVG only when the user needs to edit the figure in Illustrator. Do not submit PNG or JPEG as the primary artifact. See [examples/README.md](examples/README.md) for measured pt/px/dpi and `bbox_inches` comparisons.
+   Save an SVG only when the user needs to edit the figure in Illustrator. Do not submit PNG or JPEG as the primary artifact.
 
 2. **Render a Preview and Inspect It Visually**:
    ```python
@@ -317,10 +321,11 @@ Encapsulate default house styling into a dedicated `apply_house_style()` functio
 * [`templates/pure_mpl_grid.py`](templates/pure_mpl_grid.py): Mode B pure matplotlib 2x2 grid.
 * [`templates/pure_seaborn_cell.py`](templates/pure_seaborn_cell.py): Mode B pure seaborn boxplot + stripplot overlay.
 
-### Examples
+### Reference Showcases
 
-* [`examples/README.md`](examples/README.md): measured walkthrough of pt, px, dpi, and `bbox_inches` relationships.
-* [`examples/unit_dpi_bbox_demo.py`](examples/unit_dpi_bbox_demo.py): pure-matplotlib demo that generates the contact sheet and `measurements.csv`.
+* [`templates/upstream-showcase/README.md`](templates/upstream-showcase/README.md): vendored cnsplots Figure 1 and Figure 2 sources, with run notes. These keep the upstream 144 display dpi because their pixel offsets are tuned for it; export is 360.
+* [`templates/upstream-showcase/figure1.py`](templates/upstream-showcase/figure1.py): 18-panel upstream showcase.
+* [`templates/upstream-showcase/figure2.py`](templates/upstream-showcase/figure2.py): 13-panel upstream showcase with images and detached axes.
 
 ### Reference Guides
 

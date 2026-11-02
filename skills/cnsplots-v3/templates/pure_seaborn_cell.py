@@ -18,6 +18,7 @@ import seaborn as sns
 mpl.use("Agg")
 
 STYLE_PATH = pathlib.Path("styles/cns_cell.mplstyle")
+FIGSIZE_IN = (2.2, 1.8)  # inches; on matplotlib >=3.11 use (2.2, 1.8, "in")
 LINE_WIDTH = 0.5  # seaborn filled boxplots ignore patch.linewidth
 STRIP_SIZE = 2.0  # cnsplots stripplot default
 
@@ -37,7 +38,7 @@ def main() -> int:
     apply_house_style()
     tips = sns.load_dataset("tips")
 
-    fig, ax = plt.subplots(figsize=(2.2, 1.8))
+    fig, ax = plt.subplots(figsize=FIGSIZE_IN)
     sns.boxplot(
         data=tips,
         x="day",

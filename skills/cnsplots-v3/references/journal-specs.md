@@ -21,7 +21,7 @@ Formula: $\text{points} = \frac{\text{mm}}{25.4} \times 72$
 
 > [!IMPORTANT]
 > **Canvas Width vs Saved Width**:
-> The default `savefig_bbox='tight'` crops whitespace to visible artists. When you need the saved output width to strictly equal the column width, pass `bbox_inches=None` to `savefig()`. Measured on cnsplots 0.8.0: a 519-pt (183 mm) canvas holding one 240×150 pt panel saves about **93 mm** wide with the default tight crop, and **183.1 mm** with `bbox_inches=None`. `pad_inches` applies only to the tight path. See [examples/README.md](../examples/README.md) for a visual pt/px/dpi walkthrough.
+> The default `savefig_bbox='tight'` crops whitespace to visible artists. When you need the saved output width to strictly equal the column width, pass `bbox_inches=None` to `savefig()`. Measured on cnsplots 0.8.0: a 519-pt (183 mm) canvas holding one 240×150 pt panel saves about **93 mm** wide with the default tight crop, and **183.1 mm** with `bbox_inches=None`. `pad_inches` applies only to the tight path.
 
 ---
 
