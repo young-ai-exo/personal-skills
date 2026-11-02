@@ -1,318 +1,335 @@
 ---
 name: cnsplots
-description: Generate, revise, and debug publication-quality scientific figures in Python with the cnsplots package (Cell/Nature/Science styling, precise physical figure dimensions, built-in statistical annotations, editable SVG/PDF export). Also covers applying the cnsplots style to plain matplotlib, seaborn, or scanpy axes, repeated grid panels, heterogeneous multi-panel layouts, and the rcParams contract for custom artists. Use when a user asks for cnsplots code, journal-style plots, multi-panel or grid figures, survival/volcano/GSEA/ROC/heatmap plots, or Illustrator-editable vector figure output.
+version: 3.0.5
+upstream: https://github.com/faridrashidi/cnsplots
+description: Create, revise, and troubleshoot publication-ready scientific plots and data visualizations in Python (cnsplots, matplotlib, seaborn, scanpy), including distribution (box, violin, strip, lollipop, ridge), regression, heatmap, genomics (volcano, GSEA), survival (Kaplan-Meier, cumulative incidence), set (venn, upset), flow (sankey), classification/ROC/PR, and multi-panel figures. Prioritize whenever a user asks to plot or visualize data in Python, or requests Cell/Nature/Science-style visualization, precise physical figure dimensions (pt/mm/in), statistical plot annotations, or editable SVG/PDF publication output. Enforces a closed-loop 6-step workflow, ~100 pt panel calibration with no font or marker blow-ups, defaulting to Cell palette and Arial-first typography. Supports native cnsplots (Mode A) and pure matplotlib/seaborn via bundled cns_cell.mplstyle (Mode B) with interactive fallback.
 ---
-
 # cnsplots
 
-Produce a runnable script that plots the user's real data with `cnsplots` and
-saves a verified artifact. Never hand back untested plotting code.
+Publication-ready scientific visualization in Python across major journal styles (**Cell**, **Nature**, **Science**, etc.).
+Always execute the **6-Step Closed-Loop Workflow** below when fulfilling plotting tasks.
+For internal reports, keep the same proportions and legibility but treat exact journal caps (5–7 pt type, strict column widths) as optional; apply a journal preset only when a target journal is named.
 
-Docs: <https://cnsplots.farid.one/latest/api.html> · Gallery:
-<https://cnsplots.farid.one/latest/examples/index.html>
+---
 
-## Bundled scripts
+## Hard Rules & Aesthetic Contracts
 
-The helper scripts live next to this file. Invoke them with paths relative
-to this skill's directory (written as `$SKILL_DIR` below), not the user's
-project root:
+1. **Default Journal Styling**:
+   * Qualitative palette in the skill's house style is the **`Cell`** 10-color palette (`apply_house_style()` sets `cns.settings.palette_qual = "Cell"`; the cnsplots package default remains `Ecotyper1`).
+   * Continuous colormap defaults to **`viridis`** (`cns.settings.palette_seq = "viridis"`).
+   * Typography defaults to an **`Arial`-first** stack (`cns.settings.font_sans_serif = ("Arial", "Helvetica", "Nimbus Sans", "Liberation Sans", "DejaVu Sans")`). The Nimbus/Liberation entries are metric-compatible Linux fallbacks; leave `panel_label_fontname = None` so panel labels inherit the same resolved stack.
+   * Display and export dpi default to **360** (`cns.settings.figure_dpi = 360`, `cns.settings.savefig_dpi = 360`); previews also use 360.
+   * *Flexibility*: Other journal palettes (`"Nature"`, `"Science"`, `"NEJM"`) or fonts can be selected if explicitly requested.
+2. **The 100 pt Panel Sizing Contract**:
+   * All typography (8 pt titles/labels, 7 pt ticks/legends) and the scatter marker size (`s=7`) are calibrated for **panels around 100 pt** (common values: **80, 100, 120, 150**). 100 means **100 pt**, not screen pixels; at 360 dpi, 100 pt = 500 px.
+   * **In `cnsplots`**: `mp.panel()` defaults to 150 pt; explicit widths/heights should stay in the 80–150 pt range.
+   * **In Matplotlib**: `figsize` is in inches ($\text{inches} = \text{points} / 72$). A 100 pt axes is ~1.4 inches.
+3. **No Manual Font or Marker Blow-Ups**:
+   * **NEVER** pass `fontsize=` in `set_xlabel()`, `set_ylabel()`, `set_title()`, or `tick_params()`.
+   * **NEVER** enlarge markers (e.g., `s=30` or `s=50`). Keep the cnsplots defaults: `scatterplot(s=7)`, `stripplot(size=2)`, `lollipopplot(markersize=20)`.
+   * In Mode B, set marker and patch geometry once in `cns_cell.mplstyle` (`lines.markersize`, `patch.linewidth`). Seaborn's filled boxplot ignores those rcParams for its edge width, so `linewidth=0.5` is allowed there as a house-style constant.
+4. **Color & Meaning Consistency**:
+   * One qualitative palette per figure.
+   * Fix category order explicitly. When a categorical variable is mapped to color (`hue=`), pass `hue_order=` on every panel. When it is only on the x-axis, pass `order=`. **Never pass `hue_order` without `hue`**; it has no effect.
+5. **Statistical Integrity**:
+   * Surface statistical assumptions (test names, contrasts, paired design) explicitly. Retrieve results programmatically via `cns.get_comparison_results(ax)`.
 
-- `$SKILL_DIR/scripts/check_env.py` — environment and dependency probe
-- `$SKILL_DIR/scripts/inspect_api.py` — installed signatures and docstrings
-- `$SKILL_DIR/scripts/dump_style.py` — measured rcParams, settings, palettes, colors
-- `$SKILL_DIR/scripts/recommended_overrides.py` — Arial-first font order and viridis
-  sequential colormap overrides, with measured perceptual-uniformity reasoning;
-  `--code` emits a ready block to paste at script top
-- `$SKILL_DIR/scripts/journal_preset.py` — Cell/Nature/Science figure limits in
-  points, and which installed defaults violate them; `--code` emits a ready
-  `settings.context(...)` block
-- `$SKILL_DIR/scripts/validate_output.py` — post-save artifact validation
+---
 
-## Bundled templates
+## The 6-Step Closed-Loop Workflow
 
-Each runs unmodified on a built-in dataset, then adapts via its `CONFIGURE`
-block. Start from one instead of writing a layout from scratch:
+Follow these steps in strict sequence for every plotting request:
 
-- `$SKILL_DIR/templates/mpl_grid_repeat.py` — uniform grid, one plot type
-- `$SKILL_DIR/templates/multipanel_heterogeneous.py` — labeled A/B/C figure
-- `$SKILL_DIR/templates/mixed_grid_in_panel.py` — aligned grid inside a labeled figure
-- `$SKILL_DIR/templates/dense_figure.py` — showcase-style dense figure: per-panel
-  palettes, `below=` interlocking, negative offsets, embedded image, composite
-  plotters, embedded upsetplot
-- `$SKILL_DIR/templates/upstream-showcase/` — the upstream showcase Figure 1 and
-  Figure 2 source, vendored verbatim. Consult when a distilled rule looks wrong;
-  these files are authoritative over our prose.
+```mermaid
+flowchart LR
+    S1["1. Bootstrap<br>Environment & Style"] --> S2["2. Profile Data &<br>Select Plot Type"]
+    S2 --> S3["3. Choose Layout &<br>Budget Canvas"]
+    S3 --> S4["4. Build Figure with<br>~100 pt Proportions"]
+    S4 --> S5["5. Extract Stats &<br>Clean Annotations"]
+    S5 --> S6["6. Validate Artifact &<br>Deliver Code"]
+```
 
-## Hard rules
+### Step 1: Bootstrap Environment & Style
 
-- `import cnsplots as cns` and use only public `cns.*` names. Never import
-  `cnsplots._utils`, `cnsplots.plots._distribution`, or any other private module.
-- Verify every function signature against the *installed* version before writing
-  final code (step 2). The API changes between releases; do not trust memory.
-- Sizes in `cns.figure()` / `mp.panel()` are **points (1/72 inch)**, not inches.
-  Pass `unit="in"` or `unit="mm"` for physical dimensions; an omitted dimension
-  uses its `cns.settings` value in points regardless of `unit`. Display DPI is
-  144 (so a 200-pt figure shows a 400-px canvas); export DPI is 288.
-- Never invent data, labels, units, group orders, thresholds, or statistical
-  tests. If a choice changes scientific meaning and cannot be inferred, ask.
-- One palette per figure, and one color per meaning. Pass `hue_order` on every
-  panel sharing a categorical variable, or the same category drifts color between
-  panels. See [references/color-strategy.md](references/color-strategy.md).
-- When a target journal is known, size the figure to its column width and apply
-  its type and resolution limits. Two package defaults are **not** universally
-  compliant: `title_fontsize=8` exceeds Nature's 7 pt cap, and `savefig_dpi=288`
-  is below the 300 dpi floor Cell, Nature, and Science all require. Run
-  `python3 $SKILL_DIR/scripts/journal_preset.py <journal>` and see
-  [references/journal-specs.md](references/journal-specs.md).
-- Never hardcode a style value the package already sets. Inherit it, or read it
-  from `mpl.rcParams` / `cns.settings`. See
-  [references/rcparams.md](references/rcparams.md).
-- Do not build a visual grid by calling `mp.panel()` per cell; multipanel does
-  not align panel edges. See
-  [references/composition-patterns.md](references/composition-patterns.md).
-- Always run the script and confirm the output file exists and is non-empty
-  before reporting success.
-
-## Workflow
-
-### 1. Bootstrap the environment
+Check whether native `cnsplots` (Mode A) is available or if fallback to standalone `cns_cell.mplstyle` (Mode B) is needed:
 
 ```bash
 python3 $SKILL_DIR/scripts/check_env.py
 ```
 
-Reports the interpreter, `cnsplots` version, backend availability, and whether
-`mutool` is present. If `cnsplots` is missing, ask before installing, then:
+After upgrading `cnsplots`, run `python3 $SKILL_DIR/scripts/export_mplstyle.py --check` to catch Cell-palette drift in the bundled style files.
 
-```bash
-python3 -m pip install cnsplots     # or: uv pip install cnsplots
-```
+* **If `cnsplots` is installed** $\rightarrow$ Proceed in **Mode A (`cnsplots`)**.
+* **If `cnsplots` is NOT installed** $\rightarrow$ Prompt the user with this exact choice before writing code:
+  > "The `cnsplots` package is not installed in the active Python environment. Would you prefer to:
+  > 1. **(Recommended) Install `cnsplots`** (`pip install cnsplots`): Enables automated multi-panel flow layouts, A/B/C labeling, and built-in statistical annotations.
+  > 2. **Copy `cns_cell.mplstyle` into your project**: Render journal-grade figures with native `matplotlib` (seaborn optional; `check_env.py` reports which Mode B templates are usable)."
 
-### 2. Apply recommended overrides
-
-Place these three lines at the top of every plotting script, before
-`cns.setup_matplotlib()`:
-
-```python
-import cnsplots as cns
-cns.settings.palette_seq = 'viridis'
-cns.settings.font_sans_serif = ('Arial', 'Helvetica', 'Helvetica Neue', 'DejaVu Sans')
-cns.setup_matplotlib()
-```
-
-Why: the installed `palette_seq='gnuplot'` is non-monotonic in perceptual
-lightness (CIE L* coefficient of variation 0.66, identical to jet's 0.65) and
-has 39 value pairs separated by more than 0.1 in data space that collapse to
-within 1 L* in greyscale, making quantitative heatmaps misleading. `viridis` is
-perceptually uniform (CV 0.07) and strictly monotonic. The installed
-`font_sans_serif` prioritises Helvetica, which means Cell Press submissions
-embed Helvetica rather than the required Arial; moving Arial to the front while
-keeping Helvetica and DejaVu Sans as fallbacks ensures compliance without
-breaking on systems that lack Arial. Full measurements and reasoning:
-[references/journal-specs.md](references/journal-specs.md). Emit the block with
-`python3 $SKILL_DIR/scripts/recommended_overrides.py --code`.
-
-### 3. Verify the target journal's requirements
-
-Read the column width, type limits, and resolution floor from
-[references/journal-specs.md](references/journal-specs.md) before choosing
-dimensions, and emit a compliant preset with
-`python3 $SKILL_DIR/scripts/journal_preset.py <journal> --code`. Without MuPDF's
-`mutool`, `cns.savefig("f.svg")` still works but falls back to plain matplotlib
-SVG with a warning (no Illustrator post-processing).
-
-### 4. Inspect the data, then the API
-
-Print columns, dtypes, null counts, category levels, and event coding for the
-real input. Then confirm the signature of each function you plan to call:
-
-```bash
-python3 $SKILL_DIR/scripts/inspect_api.py boxplot survivalplot multipanel
-```
-
-Pick the narrowest suitable function from
-[references/plot-catalog.md](references/plot-catalog.md).
-
-### 5. Choose the layout before writing code
-
-Four cases. Getting this wrong costs a rewrite, because the layout engines are
-not interchangeable.
-
-| Figure | Approach | Start from |
-| --- | --- | --- |
-| One panel | `cns.figure(width=, height=)` | baseline below |
-| Same plot repeated, uniform cells | `cns.figure()` + `fig.subplots()` | `templates/mpl_grid_repeat.py` |
-| Different sizes/types, A/B/C labels | `cns.multipanel()` + `mp.panel()` | `templates/multipanel_heterogeneous.py` |
-| Heterogeneous **and** a repeated block | one host `mp.panel()` + `fig.add_gridspec()` | `templates/mixed_grid_in_panel.py` |
-| Full journal figure: many panels, images, composite plotters | `cns.multipanel()` + hand-tuned offsets | `templates/dense_figure.py` |
-
-`multipanel` sizes each panel from its *rendered* axis decorations, so panels
-whose y tick labels differ in width get different axes left edges. Measured:
-three `below=`-stacked panels at y magnitudes 1, 1e5, 10 landed at
-`x0 = 0.065 / 0.114 / 0.075`. `below=` groups panels vertically; it does not
-align them, and `ax.set_position()` does not survive the next relayout. When
-edges must line up, use the host-panel plus `GridSpec` pattern.
-
-`multipanel` self-corrects its layout through a `draw_event` handler that it
-connects automatically; do not call it yourself, and do not call
-`fig.tight_layout()` on a multipanel figure, where it is a no-op that only emits
-a warning. `tight_layout` belongs to the matplotlib grid path. Full reasoning and
-measurements:
-[references/composition-patterns.md](references/composition-patterns.md).
-
-### 6. Build the figure
-
-```python
-import matplotlib
-
-matplotlib.use("Agg")  # required for headless runs
-
-import cnsplots as cns
-
-fig = cns.figure(width=180, height=150, color_cycle="Ecotyper1")
-ax = cns.boxplot(data=df, x="group", y="value", pairs=[("A", "B")])
-ax.set(xlabel="Group", ylabel="Value (a.u.)")
-cns.savefig("outputs/figure.svg", fig=fig)
-```
-
-- `cns.figure()` applies the full style **and** creates the figure; it returns
-  the matplotlib `Figure`, which also becomes current, so keep the handle:
-  `fig = cns.figure(...)`. `plt.gcf()` still works but is no longer needed. Do
-  not also call `setup_matplotlib()`.
-- Sizing is in points; for a physical size pass `unit=` instead of converting by
-  hand: `cns.figure(183, 100, unit="mm")`, `cns.multipanel(max_width=183,
-  unit="mm")`, `mp.panel("A", width=2, height=1, unit="in")`. Panel `unit`
-  overrides the constructor's. Margins stay in points and `pad_left`/`pad_top`
-  stay in display pixels regardless of `unit`.
-- Creating the figure yourself, or drawing with plain matplotlib, seaborn, or
-  scanpy? Use `cns.setup_matplotlib()` first, or `cns.setup_ax(ax)` to retrofit
-  existing axes. Patterns: [references/style-bridge.md](references/style-bridge.md).
-- Titles and labels go through the returned matplotlib `Axes`. Pass no
-  `fontsize`, `linewidth`, or `frameon`; every value you supply overrides the
-  journal style.
-- Temporary style changes: `with cns.settings.context(...):` — do not mutate
-  global settings permanently. Call `cns.figure()` / `setup_matplotlib()`
-  **inside** the block for the temporary values to reach rcParams; the context
-  now restores rcParams on exit too, including nested contexts and exceptions.
-- Read statistics back instead of trusting the annotation. `cns.boxplot`,
-  `violinplot`, `barplot`, `lollipopplot`, and `stackplot` accept `pairs=` as a
-  list, `"all"`, or `"hue"`; after the call, `cns.get_comparison_results(ax)`
-  returns a DataFrame of group1/group2, test, `n1`/`n2`, raw and adjusted
-  p-values, `significant`, and the rendered label, without rerunning anything.
-  Paired designs: pass `test="t-test_paired"` or `"Wilcoxon"` with
-  `subject=<id column>`; this aligns by subject and raises on duplicate
-  subjects, so plot summaries and matched-test counts can differ. Read survival
-  estimates with `cns.get_survival_results(ax)`, and ROC / precision-recall /
-  calibration results with `get_roc_results` / `get_precision_recall_results` /
-  `get_calibration_results`.
-- `cns.take_legend_out(ax=ax)` — `ax` is **keyword-only**. Written positionally
-  it silently sets the legend *title* to the axes repr string.
-- `heatmapplot` / `dotplot` return backend plotter objects, `vennplot` returns a
-  matplotlib-venn object, `upsetplot` returns panel axes — not a plain `Axes`.
-  Guard `.set(...)` calls accordingly.
-
-### 7. Save and validate
-
-```bash
-python3 $SKILL_DIR/scripts/validate_output.py outputs/figure.svg
-```
-
-Prefer SVG or PDF for submission, PNG for preview. `cns.savefig(path)` saves the
-current figure; pass `fig=fig` to save a retained figure without changing which
-one is current. Per-save `dpi=`, `transparent=`, `bbox_inches=`, and
-`pad_inches=` override the `savefig_*` settings for that call only.
-
-**The canvas size is not the saved size.** The default `savefig_bbox='tight'`
-crops to the artists, so a figure laid out to a journal column width saves
-narrower than that width. Measured: a 519-pt (183 mm) multipanel canvas holding
-one 240x150 panel saves at about 94 mm. Whenever the printed width must equal the
-column width, save with `bbox_inches=None`; `pad_inches` then no longer applies.
-
-A clean script exit is not evidence the figure is correct: every layout defect
-found while building this skill (a silently wrapped multipanel row, tick labels
-crashing into the panel below, an unrequested p-value annotation) exited zero and
-produced a valid file.
-
-Render a PNG and look at it. `savefig_transparent` is `True` by default, so set
-`cns.settings.savefig_transparent = False` for the preview or the figure may
-look blank on a dark background. Check: text clipping, overlapping tick labels,
-legend collisions, misleading or truncated axes, indistinguishable colors, panel
-misalignment, and annotations you did not ask for.
-
-Also confirm the same category carries the same color in every panel, and check
-the figure in greyscale, since figures get printed:
-
-```python
-from PIL import Image
-
-Image.open("figure.png").convert("L").save("figure_grey.png")
-```
-
-For multipanel, confirm the row structure is what you intended. `max_width` must
-exceed the sum of axes widths **plus** each panel's decoration reserve and
-margins; otherwise a panel wraps to the next row with no warning. Measured: two
-panels of 150 and 300 points need `max_width=519` once a boxplot is drawn in
-each (507 for empty panels), so budget from the rendered version, not the bare
-widths. Compare `y0` values to verify which panels share a row. `mp.newline()`
-forces a row break; repeated calls add no blank rows, and a `below=` stack stays
-with its parent.
-
-### 8. Report
-
-Return the full runnable script, the absolute output path, the palette/size
-choices made, and every scientific assumption (tests, comparison direction,
-event coding, transformations).
-
-## Statistical integrity
-
-- `pairs`, event codes, reference groups, transforms, and thresholds are
-  analysis decisions. Surface them explicitly; never add them for decoration.
-- Name the test actually used by the installed function's docstring (e.g.
-  two-sided Mann-Whitney U for `boxplot`, Welch's t-test for `barplot`,
-  Fisher's exact for `stackplot`), not an assumed one. Paired tests
-  (`t-test_paired`, `Wilcoxon`) require `subject=`; without it the package
-  refuses rather than silently testing independent samples.
-- Confirm what was tested from the result table rather than the drawn label.
-  `cns.get_comparison_results(ax)` reports the sample sizes the test actually
-  used, which differ from the plotted counts when rows are dropped or subjects
-  are matched.
-- **Some functions annotate a test you did not request.** `cns.kdeplot` with a
-  two-level `hue` runs a two-sample Kolmogorov-Smirnov test and prints
-  `P = ...` on the axes; `add_mode=False` does not suppress it, and with three
-  or more levels no annotation appears. Always inspect `ax.texts` after
-  plotting. Either report that test by name in the caption, or remove the
-  annotation deliberately:
-
-  ```python
-  for text in list(ax.texts):
-      if text.get_text().startswith("$P"):
-          text.remove()
+  If the user selects **2**, **copy `cns_cell.mplstyle` from the skill into the current project directory** (e.g. `./styles/cns_cell.mplstyle`) rather than directly referencing `$SKILL_DIR`:
+  ```bash
+  mkdir -p ./styles
+  cp $SKILL_DIR/styles/cns_cell.mplstyle ./styles/cns_cell.mplstyle
   ```
-- Keep raw observations when requested; do not silently swap distributions for
-  summary bars.
-- Do not imply causality or significance beyond what the data and test support.
 
-## Reference index
+---
 
-Load these on demand; do not read them all up front.
+### Step 2: Profile Data & Select Plot Type
 
-- [references/plot-catalog.md](references/plot-catalog.md) — pick a plot function
-- [references/composition-patterns.md](references/composition-patterns.md) — grid
-  vs multipanel, panel alignment, mixed layouts
-- [references/dense-figures.md](references/dense-figures.md) — full journal
-  figures: negative offsets, embedded images, composite plotter internals,
-  reworking generated annotations
-- [references/color-strategy.md](references/color-strategy.md) — one palette per
-  figure, keeping a variable on one color, qualitative vs sequential vs diverging,
-  color-vision and greyscale checks
-- [references/journal-specs.md](references/journal-specs.md) — Cell, Nature, and
-  Science column widths, type and line limits, resolution and format
-  requirements, and which package defaults violate them
-- [references/style-bridge.md](references/style-bridge.md) — matplotlib, seaborn,
-  scanpy, and plotnine integration
-- [references/rcparams.md](references/rcparams.md) — the rcParams contract; read
-  before writing custom artists or hardcoding any style value
-- [references/settings-catalog.md](references/settings-catalog.md) — every
-  `cns.settings` field
-- [references/troubleshooting.md](references/troubleshooting.md) — backend errors,
-  blank figures, clipped labels, palette misuse, SVG font issues
+Never invent plot structures. Inspect the actual input DataFrame columns, dtypes, missing values, and category counts first:
+
+```python
+print(df.info())
+print(df.nunique())
+print(df.head(3))
+```
+
+#### Data-to-Plot Decision Guide
+
+Match the data structure to the scientific intent (consult [references/plot-catalog.md](references/plot-catalog.md) for full options):
+
+* **Categorical Group vs Continuous Value**:
+  * $\le 5$ groups $\rightarrow$ `cns.boxplot` or `cns.violinplot` + `cns.stripplot` (use `pairs=` for group comparisons).
+  * Many groups ($>10$) $\rightarrow$ `cns.lollipopplot` or `cns.ridgeplot`.
+* **Two Continuous Variables**:
+  * Relationship $\rightarrow$ `cns.scatterplot` (keep default `s=7`).
+  * Trend / Fit $\rightarrow$ `cns.regplot` or `cns.lineplot`.
+* **Matrices & High-Dimensional Expression**:
+  * Clustered expression $\rightarrow$ `cns.heatmapplot` (returns `ClusterMapPlotterNew`).
+  * Enrichment by size + color $\rightarrow$ `cns.dotplot` (returns `DotClustermapPlotterNew`).
+* **Time-to-Event / Clinical Outcome**:
+  * Kaplan-Meier curve $\rightarrow$ `cns.survivalplot` (requires event & duration columns).
+  * Odds / Hazard ratios with 95% CI $\rightarrow$ `cns.forestplot`.
+* **Set Intersections**:
+  * 2–3 sets $\rightarrow$ `cns.vennplot`.
+  * $\ge 4$ sets $\rightarrow$ `cns.upsetplot`.
+* **Genomics & Differential Analysis**:
+  * Effect size vs significance $\rightarrow$ `cns.volcanoplot`.
+  * Gene set enrichment $\rightarrow$ `cns.gseaplot`.
+
+#### Verify Function Signature
+
+Before calling an unfamiliar function, inspect the real installed signature to prevent API hallucination:
+
+```bash
+python3 $SKILL_DIR/scripts/inspect_api.py <function_name>
+```
+
+---
+
+### Step 3: Determine Layout Architecture & Canvas Budget
+
+Select the layout pattern based on panel heterogeneity and alignment requirements (see [references/composition-guide.md](references/composition-guide.md)):
+
+| Layout Case                                 | Recommended Engine                                      | Canvas Sizing / Column Limits           |
+| :------------------------------------------ | :------------------------------------------------------ | :-------------------------------------- |
+| **Single Panel**                      | `cns.figure(width=..., height=..., unit="pt")`        | Submission: 241 / 493 / 519 / 522 pt canvas; report: 120–180 pt canvas; axes ~100 pt |
+| **Uniform Repeated Grid**             | `fig = cns.figure()` + `fig.subplots(nrows, ncols)` | Guarantees row/column edge alignment    |
+| **Heterogeneous Multi-panel (A/B/C)** | `mp = cns.multipanel(max_width=..., unit="pt")`       | Cell: 1-col = 241 pt, 2-col = 493 pt    |
+| **Hybrid Grid in Multi-panel**        | Host `mp.panel()` + `fig.add_gridspec()`            | Prevents y-tick decoration misalignment |
+
+> [!IMPORTANT]
+> `cns.figure(width, height)` sizes the **full canvas**, while `mp.panel(width, height)` sizes the **axes content area**. The 80–150 pt guidance applies to axes; a full journal column is 241 / 493 / 519 / 522 pt. Do not copy a canvas width into `mp.panel()` or vice versa.
+
+`unit` is explicit in cnsplots 0.8. These three canvas sizes are physically identical:
+
+```python
+cns.figure(144, 72, unit="pt")
+cns.figure(2, 1, unit="in")
+cns.figure(50.8, 25.4, unit="mm")
+```
+
+`cns.multipanel(..., unit="pt")` sets the unit for every subsequent `mp.panel()`; an individual panel can set it explicitly with `mp.panel(..., unit="pt")`.
+
+> [!WARNING]
+> In `cns.multipanel()`, outer widths vary with y-axis tick label width. Never build a visual grid by calling `mp.panel()` once per cell; use `fig.subplots()` or `GridSpec` when edges must strictly align.
+
+---
+
+### Step 4: Build Figure with ~100 pt Proportions
+
+Encapsulate default house styling into a dedicated `apply_house_style()` function, then construct panels adhering to the ~100 pt sizing baseline:
+
+* **Mode A (`cnsplots`)**:
+  ```python
+  import cnsplots as cns
+  import matplotlib as mpl
+
+  mpl.use("Agg")  # required for headless runs
+
+  HOUSE_PALETTE = "Cell"
+  DENSITY_CMAP = "viridis"
+  FONT_SANS_SERIF = (
+      "Arial",
+      "Helvetica",
+      "Nimbus Sans",
+      "Liberation Sans",
+      "DejaVu Sans",
+  )
+
+
+  def apply_house_style() -> None:
+      """Configure cnsplots with Cell palette, viridis, Arial-first fonts, and print-safe export."""
+      cns.settings.font_sans_serif = FONT_SANS_SERIF
+      cns.settings.panel_label_fontname = None  # inherit the resolved font stack
+      cns.settings.pdf_fonttype = 42  # TrueType embedding for Illustrator
+      cns.settings.svg_fonttype = "none"  # keep SVG text editable
+      cns.settings.palette_qual = HOUSE_PALETTE
+      cns.settings.palette_seq = DENSITY_CMAP
+      cns.settings.figure_dpi = 360  # on-screen rendering
+      cns.settings.savefig_dpi = 360  # export
+      cns.settings.savefig_transparent = False  # white background for print/preview
+
+      # Both are needed: setup_matplotlib sets rcParams cycle for bare matplotlib calls,
+      # palette_qual is what cns.* plot functions and multipanel read.
+      cns.setup_matplotlib(color_cycle=HOUSE_PALETTE, color_map=DENSITY_CMAP)
+
+
+  def main() -> None:
+      apply_house_style()
+
+      # Add panels (~100 pt axes baseline)
+      mp = cns.multipanel(max_width=493, unit="pt")  # Cell 2-column limit
+      ax_a = mp.panel("A", width=110, height=100)  # unit="pt" inherited from multipanel
+      cns.boxplot(
+          data=df,
+          x="group",
+          y="score",
+          pairs=[("Ctrl", "Treat")],
+          order=["Ctrl", "Treat"],  # x-axis order; use hue_order only with hue=
+          ax=ax_a,
+      )
+      ax_a.set(xlabel="", ylabel="Score (a.u.)")
+  ```
+
+* **Mode B (Pure Matplotlib / Seaborn Fallback)**:
+  Prerequisite: Copy `cns_cell.mplstyle` into `./styles/cns_cell.mplstyle`.
+  ```python
+  from pathlib import Path
+
+  import matplotlib as mpl
+  import matplotlib.pyplot as plt
+
+  mpl.use("Agg")
+
+  STYLE_PATH = Path("styles/cns_cell.mplstyle")
+  FIGSIZE_IN = (3.5, 3.2)  # inches (matplotlib <3.11); use (3.5, 3.2, "in") on 3.11+
+
+
+  def apply_house_style(style_file: Path | str = STYLE_PATH) -> None:
+      """Load project house style sheet for pure matplotlib."""
+      target = Path(style_file)
+      if not target.is_file():
+          target = Path("cns_cell.mplstyle")
+      plt.style.use(str(target))
+
+
+  def main() -> None:
+      apply_house_style()
+
+      # 2x2 grid (~100 pt per axes + padding); figsize uses inches here (3.11+: add "in")
+      fig, axes = plt.subplots(2, 2, figsize=FIGSIZE_IN, constrained_layout=True)
+      ...
+  ```
+
+  Matplotlib `figsize` units:
+  * **3.10.x**: `(width_in, height_in)` only; no `unit=` argument.
+  * **3.11+**: `(width, height, unit)` with `"in"`, `"cm"`, or `"px"`; use `(width, height, "in")` to make the unit explicit. A 2-tuple still means inches. `set_size_inches()` remains inches-only.
+  Convert with `pt / 72`. The installed cnsplots 0.8.0 environment uses matplotlib 3.10.9, so the templates keep the 2-tuple; add `"in"` when you run on 3.11+. The `(width, height, unit)` form also belongs to `cns.figure(..., unit="pt" | "in" | "mm")`, which is a cnsplots API independent of matplotlib. The style sheet sets `figure.dpi` and `savefig.dpi` to 360.
+
+---
+
+### Step 5: Extract Statistical Truth & Clean Annotations
+
+1. **Extract Programmatic Test Results**:
+   After plotting with `pairs=`, retrieve verified statistical values without rerunning:
+   ```python
+   stats_df = cns.get_comparison_results(ax_a)
+   print(
+       stats_df[
+           [
+               "group1",
+               "group2",
+               "test",
+               "pvalue_raw",
+               "pvalue_adjusted",
+               "pvalue_annotation",
+               "significant",
+               "annotation",
+           ]
+       ]
+   )
+   ```
+
+2. **KDE KS-Test Cleanup**:
+   `cns.kdeplot` with a 2-level `hue` annotates an unrequested Kolmogorov-Smirnov test. If unwanted, remove it:
+   ```python
+   for text in list(ax.texts):
+       if text.get_text().startswith("$P"):
+           text.remove()
+   ```
+
+---
+
+### Step 6: Validate Artifact & Deliver Deliverables
+
+1. **Save the Deliverable**:
+   ```python
+   # PDF is the universal submission format; SVG is for Illustrator editing.
+   # bbox_inches=None keeps the full canvas at the configured column width.
+   cns.savefig("outputs/figure.pdf", bbox_inches=None, transparent=False)
+   ```
+   Save an SVG only when the user needs to edit the figure in Illustrator. Do not submit PNG or JPEG as the primary artifact.
+
+2. **Render a Preview and Inspect It Visually**:
+   ```python
+   # 360 dpi matches the display and final export; only bbox_inches differs.
+   cns.savefig(
+       "outputs/figure_preview.png",
+       dpi=360,
+       bbox_inches="tight",
+       transparent=False,
+   )
+   ```
+   Open the PNG and look at it. Use the model's visual inspection, not a script that checks file existence or emptiness. Check:
+   * no clipped text, tick labels, or legends;
+   * no overlapping labels or annotations;
+   * the same category has the same color in every panel;
+   * no unrequested statistical annotation (for example, the KDE KS test);
+   * greyscale readability: series remain distinguishable by lightness, marker, or linestyle. The Cell palette does not guarantee this on its own; its first two colors have nearly identical CIE L*.
+
+3. **Report**: Deliver the full runnable script, output paths, and all statistical assumptions (tests, comparison direction, group orders).
+
+---
+
+## Bundled Assets Index
+
+### Styles & Colors
+
+* [`styles/cns_cell.mplstyle`](styles/cns_cell.mplstyle): Standalone Matplotlib style sheet generated from the cnsplots Cell palette (Arial-first fallbacks, Cell cycler, 0.5 pt spines and patch edges, 8/7 pt hierarchy, s=7 pt² markers, 360 dpi display/export, white background).
+* [`styles/cell_colors.py`](styles/cell_colors.py): Generated module with `CELL_HEX`, `CELL_RGB`, named constants (`CELL_RED`, `CELL_TEAL`, etc.), and `get_cell_colors()`; use it when you need the Cell palette without cnsplots.
+
+### Scripts
+
+* [`scripts/check_env.py`](scripts/check_env.py): Zero-dependency probe for Python, cnsplots, matplotlib, seaborn, mutool, and Mode A vs Mode B readiness.
+* [`scripts/export_mplstyle.py`](scripts/export_mplstyle.py): Regenerates `cns_cell.mplstyle` and `cell_colors.py` from `cns.palettes("Cell")`; `--check` is the drift test.
+* [`scripts/inspect_api.py`](scripts/inspect_api.py): Introspects installed `cnsplots` public functions to prevent API hallucinations.
+
+### Templates
+
+* [`templates/cns_multipanel_cell.py`](templates/cns_multipanel_cell.py): Mode A multi-panel publication template.
+* [`templates/cns_single_figure.py`](templates/cns_single_figure.py): Mode A single-panel boxplot with comparisons.
+* [`templates/pure_mpl_grid.py`](templates/pure_mpl_grid.py): Mode B pure matplotlib 2x2 grid.
+* [`templates/pure_seaborn_cell.py`](templates/pure_seaborn_cell.py): Mode B pure seaborn boxplot + stripplot overlay.
+
+### Reference Showcases
+
+* [`templates/upstream-showcase/README.md`](templates/upstream-showcase/README.md): vendored cnsplots Figure 1 and Figure 2 sources, re-tuned to the house style (360 dpi, Cell palette, Arial-first fonts, pt units) with run notes and the export workaround.
+* [`templates/upstream-showcase/figure1.py`](templates/upstream-showcase/figure1.py): 18-panel upstream showcase.
+* [`templates/upstream-showcase/figure2.py`](templates/upstream-showcase/figure2.py): 13-panel upstream showcase with images and detached axes.
+
+### Reference Guides
+
+* [`references/plot-catalog.md`](references/plot-catalog.md): Complete catalog of 30+ plot functions, returns, and statistical accessors.
+* [`references/journal-specs.md`](references/journal-specs.md): Specifications for Cell Press (default), Nature, and Science (column widths, font caps, line weights, resolution).
+* [`references/panel-sizing-100pt.md`](references/panel-sizing-100pt.md): The 100 pt golden baseline, point-to-inch conversions, and typography proportions.
+* [`references/composition-guide.md`](references/composition-guide.md): Layout patterns, `multipanel` dynamic left-reserve physics, and alignment rules.

@@ -1,209 +1,108 @@
-# cnsplots plot catalog
+# Plot Functions Catalog & Capabilities Reference
 
-Select the narrowest fitting function, then verify its installed signature with
-`python3 $SKILL_DIR/scripts/inspect_api.py <name>` before writing code.
-
-## Distributions and group comparison
-
-| Function | Use for |
-| --- | --- |
-| `boxplot` | quartiles/medians across categories; optional pairwise tests |
-| `violinplot` | full distribution shape across categories |
-| `stripplot` | individual observations, often overlaid on box/violin |
-| `barplot` | group estimates as bars (with error bars) |
-| `lollipopplot` | values with stems and markers, dense categories |
-| `dumbbellplot` | two endpoints per category connected by a line |
-| `histplot` | binned univariate or bivariate distributions |
-| `kdeplot` | smoothed density estimates |
-| `distplot` | compact combined distribution view |
-| `ridgeplot` | stacked densities across many groups |
-| `qqplot` | observed vs theoretical quantiles |
-
-## Relationships and change
-
-- `scatterplot`: relationship between numeric variables.
-- `regplot`: fitted regression with confidence context.
-- `lineplot`: trends or repeated measures over an ordered axis.
-- `slopeplot`: paired change between two conditions or time points.
-
-## Matrices and classification
-
-- `heatmapplot`: annotated / hierarchically clustered matrices.
-- `dotplot`: matrix values encoded by dot size + color (enrichment style).
-- `confusionplot`: predicted vs observed classes.
-
-`heatmapplot` and `dotplot` return backend-native plotter objects, not `Axes`.
-Style them through their internal axes (`ax`, `ax_heatmap`, `hm_ax`, `cbar_ax`,
-`dot_legend`, `ax_row_dendrogram`, `ax_col_dendrogram`, `ax_*_annotation`); note
-`hm_ax` and `ax_heatmap` are different objects. See
-[dense-figures.md](dense-figures.md).
-
-## Proportions, sets, flows
-
-- `stackplot`: categorical composition across groups (supports Fisher tests).
-- `pieplot`, `donutplot`: parts of a whole, few categories only.
-- `vennplot`: overlap among 2-3 sets; returns a matplotlib-venn object.
-- `upsetplot`: scalable set intersections; returns panel axes.
-- `sankeyplot`: flow between source and target categories.
-
-## Survival and model summaries
-
-- `survivalplot`: Kaplan-Meier curves, log-rank tests, pairwise hazard ratios.
-  `p_adjust=` corrects the pairwise Cox family; `descriptive_only=True` drops the
-  tests and keeps the curves.
-- `get_survival_results(ax)`: detached DataFrame of what the latest
-  `survivalplot` annotated — one row per estimate/test, `kind` in `overall`,
-  `pairwise_cox`, `median_survival`, `landmark_survival`, `landmark_test`,
-  `rmst`. `estimate` is the HR, median, survival probability, or RMST;
-  `pvalue_raw`/`pvalue_adjusted` carry the correction. Does not rerun models.
-- `cumulativeincidenceplot`: competing-risk cumulative incidence.
-- `forestplot`: effect estimates with confidence intervals.
-- `CoxModel`, `LogisticModel`: fitted models feeding the plots above.
-
-Confirm event coding (1 = event vs censored), time units, reference group, and
-requested contrasts before plotting.
-
-`boxplot`, `violinplot`, `barplot`, `lollipopplot`, and `stackplot` accept
-`pairs=` (plus `test=` and `p_adjust=`); `get_comparison_results(ax)` returns the
-comparison table for the latest such call on that axes — `group1`, `group2`,
-`test`, `alternative`, `paired`, `n1`, `n2`, `pvalue_raw`,
-`pvalue_adjusted`, `p_adjust`, `pvalue_annotation`, `significant`,
-`annotation`. It reads the rendered annotation, so it does not rerun the tests,
-and a later plot without `pairs=` does not replace it. The continuous plots take
-`test=` of `'Mann-Whitney'`, `'t-test_welch'`, `'t-test_paired'`, or
-`'Wilcoxon'` — `Mann-Whitney` is the default on `boxplot` and `violinplot`,
-`t-test_welch` on `barplot` and `lollipopplot`. The two paired choices need
-`subject=` naming the column that pairs observations; without it the call raises
-`ValueError`.
-
-## Genomics and evaluation
-
-- `volcanoplot`: effect size vs transformed adjusted significance.
-- `gseaplot` / `prerank`: gene-set enrichment results.
-- `rocplot`: ROC curves with AUC; `pairs=` / `p_adjust=` test AUC differences,
-  `ci_show=` adds pointwise bands. `get_roc_results(ax)` returns a `ROCResults`
-  dict of DataFrames keyed `curves`, `metrics`, `bands`, `comparisons`
-  (`bands` and `comparisons` are empty unless requested).
-- `precisionrecallplot`: PR curves with average precision;
-  `get_precision_recall_results(ax)` returns `curves` and `metrics`.
-- `calibrationplot`: reliability bins with Brier score;
-  `get_calibration_results(ax)` returns `bins` and `metrics`.
-- `phyloplot`: phylogenetic visualization from `AnnData`.
-
-The three `get_*_results` accessors read a snapshot the plot already computed;
-they do not rerun the analysis, and they return empty tables with the right
-columns when no matching plot was drawn on that axes.
-
-Never infer log transforms or significance cutoffs; read the installed
-signature for the exact expected columns.
-
-## Composition, style, export
-
-Figure and layout:
-
-- `figure(width, height, color_cycle=..., color_map=..., *, unit="pt")`:
-  point-sized canvas (1 pt = 1/72 inch). Applies the full style and **returns the
-  `Figure`**, which also becomes the current figure. An omitted dimension falls
-  back to the matching `settings` value in points, whatever `unit` is; `unit`
-  only rescales the numbers you pass (`unit="mm"` is millimetres).
-- `multipanel(max_width=..., title=..., loc=..., title_fontweight=..., *, unit="pt")`
-  with `.panel(...)`, `.newline()`, `.get_axes(label)`, `.fig`, `.axes`.
-  Same `unit` contract; panels can override it per call.
-- `add_panel_label(name, pad_left, pad_top)`: labels the **current** axes; there
-  is no `ax` parameter, so call `plt.sca(ax)` first.
-- `savefig(path, *, fig=None, dpi=None, transparent=None, bbox_inches=...,
-  pad_inches=None)` (alias `save`): saves and creates parent directories. Every
-  argument is keyword-only. Omitted ones fall back to `settings`
-  (`savefig_dpi=288`, `savefig_transparent`, `savefig_bbox="tight"`).
-  `bbox_inches=None` saves the **full canvas** instead of cropping to the
-  artists; `"tight"` crops; a `Bbox` fixes a region in inches.
-
-Style:
-
-- `setup_matplotlib`, `setup_ax`, `setup_scanpy`: apply cnsplots styling to
-  figures built with other libraries, and all return `None`.
-  `setup_ggplot()` is different: it returns an R `theme()` code string to paste
-  into a ggplot2 script, and touches no matplotlib state.
-- `settings.context(...)`: scoped style overrides. `settings.reset()`: restore
-  defaults.
-- `take_legend_out(title=None, *, ax=None)`: `ax` is keyword-only.
-- `apply_unicode_font()`: CJK and symbol coverage.
-
-Color:
-
-- `palettes(name_or_list)`: returns RGB float tuples for **qualitative** names
-  only; the 5 sequential/diverging names return `LinearSegmentedColormap`
-  objects instead (see below). Plain matplotlib names such as `gnuplot` raise
-  `RuntimeError`.
-- `available_palettes(kind=None)`: list every name `palettes()` accepts; `kind`
-  is `"qualitative"` or `"continuous"`. Includes user palettes in registration
-  order. 28 qualitative and 5 continuous built-ins on 0.8.0.
-- `register_palette(name, colors)`: add a qualitative palette for the session;
-  the name then works in `color_cycle=` and `palettes()`.
-- `get_palette_colors(indices, palette=None)`: specific colors, as hex strings.
-  `palette=None` means `Set1`, not the active palette.
-- `get_hexcolors_from_apalette(indices, palette=None)`: compat wrapper that
-  forwards to `get_palette_colors` and returns the same list.
-- Constants: `RED`, `BLUE`, `GREEN`, `ORANGE`, `PURPLE`, `YELLOW`, `PINK`, `GRAY`,
-  `BROWN`, `VIOLET`, `CHOCOLATE`. Seven of the eleven are `Ecotyper1` members —
-  `RED` [0], `BLUE` [1], `GREEN` [2], `PURPLE` [3], `ORANGE` [4], `YELLOW` [5],
-  `GRAY` [6]. `PINK`, `BROWN`, `VIOLET`, and `CHOCOLATE` are **not** in it and
-  read as non-palette colors.
-
-Choosing and coordinating colors across panels:
-[color-strategy.md](color-strategy.md).
-
-Models and data:
-
-- `CoxModel`, `LogisticModel`: fitted models feeding `forestplot` and survival
-  plots.
-- `prerank`: GSEA prerank input for `gseaplot`.
-- `datasets.load_dataset(name)` for built-in demo frames;
-  `datasets.get_showcase_data`; `datasets.gallery` is a submodule.
-- `placeholderplot(description, *, ax=None)`: draw a captioned placeholder in a
-  panel whose real content does not exist yet.
-- `utils`, `validation`, `methods`: helper namespaces.
-
-Names accepted by `palettes()`, probed against 0.8.0. Qualitative (28):
-`Ecotyper1`-`Ecotyper6`, `Cell`, `Nature`, `Science`, `NEJM`, `Lancet`, `JAMA`,
-`JCO`, `OkabeIto`, `TolBright`, `TolMuted`, `Tableau`, `Bold`, `ECharts`,
-`Set1`-`Set3`, `Pastel1`, `Pastel2`, `Paired`, `Dark2`, `Accent`, `BlueRed`.
-Use `cns.available_palettes("qualitative")` for the live list. Continuous (5),
-which return a colormap object and therefore are **not** usable as a
-`color_cycle`: `BuRd_custom`, `OrBu_custom`, `WhYlOrRd_custom`, `YlGnBu_custom`,
-`parula` — each raises `ValueError` as a cycle. Route them through `color_map=` or
-`cmap=`. `BlueRed` is the one diverging name that *is* a qualitative list (6
-colors) and does work as a `color_cycle`. Plain matplotlib colormap names are
-**rejected** by `palettes()`: `gnuplot`, `viridis`, and `Blues` all raise
-`RuntimeError`. Re-probe with `python3 $SKILL_DIR/scripts/dump_style.py palettes`.
-
-Full style contract: [rcparams.md](rcparams.md) and
-[settings-catalog.md](settings-catalog.md).
-
-### Layout skeletons
-
-Pick the engine deliberately; see
-[composition-patterns.md](composition-patterns.md) for why these are not
-interchangeable, and start from `templates/`.
-
-```python
-import matplotlib
-
-matplotlib.use("Agg")
-
-import cnsplots as cns
-
-mp = cns.multipanel(max_width=540)
-
-ax_a = mp.panel("A", width=150, height=150)
-cns.boxplot(data=grouped, x="group", y="value", ax=ax_a)
-
-ax_b = mp.panel("B", width=150, height=150)
-cns.scatterplot(data=continuous, x="x", y="y", ax=ax_b)
-
-cns.savefig("outputs/multipanel.svg")
+Comprehensive reference for selecting and configuring plotting functions in `cnsplots`.
+Before writing code, verify the real installed signature with:
+```bash
+python3 $SKILL_DIR/scripts/inspect_api.py <function_name>
 ```
 
-For a uniform repeated grid use `cns.figure(...)` plus `fig.subplots(...)` on the
-returned figure (`axes = cns.figure(width=340, height=240).subplots(2, 2)`)
-instead; `multipanel` does not align panel edges.
+---
+
+## 1. Distributions & Group Comparisons
+
+| Function | Primary Use Case | Key Parameters & Statistical Highlights |
+| :--- | :--- | :--- |
+| `boxplot` | Quartiles, medians, and outliers across categories | `pairs=[("A", "B")]` or `"all"`, `test="Mann-Whitney"`, `"t-test_welch"`, `"t-test_paired"`, `"Wilcoxon"`, `p_adjust="holm"`, `add_count=True`, `showoutliers=False`. |
+| `violinplot` | Full distribution density shape across categories | `pairs=` supported, `width=0.6`, `add_box=True`, `add_count=True`; pass `inner_kws`/`linewidth` through `**kwargs` for violin styling. |
+| `stripplot` | Individual observation points, often overlaid on box/violin | `jitter=0.2`, `size=2` (default), `alpha=0.6`. |
+| `barplot` | Group means (error bars are not displayed by default) | `pairs=` supported (defaults to Welch's t-test), `add_tip=True` to label means. |
+| `lollipopplot` | Stem-and-marker plot for dense categories | `pairs=` supported, default `markersize=20`, cleaner than bar plots for >10 categories. |
+| `dumbbellplot` | Two paired endpoints per category connected by a line | Shows before/after or condition contrasts clearly. |
+| `histplot` | Binned univariate or bivariate distributions | e.g. `bins=20`, `kde=True`, `element="step"`; `bins` defaults to `"auto"`. |
+| `kdeplot` | Continuous smoothed kernel density estimates | *Note: 2-level hue automatically annotates a two-sample Kolmogorov-Smirnov test ($P = ...$). Clean if unrequested.* |
+| `ridgeplot` | Stacked joyplot/ridgeline densities across many groups | Compact visualization for 5–20 categorical groups. |
+| `qqplot` | Observed vs theoretical quantiles | Normality assessment. |
+
+---
+
+## 2. Relationships, Trends & Regression
+
+| Function | Primary Use Case | Key Parameters |
+| :--- | :--- | :--- |
+| `scatterplot` | Correlation between two continuous variables | `s=7` (default marker size), `hue=`, `hue_order=`, `alpha=0.8`. |
+| `regplot` | Scatterplot with fitted linear/polynomial regression line | `order=1`, `ci=95`, default `s=3` (not the scatterplot default of 7). |
+| `lineplot` | Time series or ordered longitudinal trends | `err_style="band"`, `markers=True`. |
+| `slopeplot` | Paired change across two time points or treatments | Highlights direction and magnitude of individual shifts. |
+
+---
+
+## 3. Matrices, Heatmaps & Enrichment
+
+| Function | Primary Use Case | Return Type & Axis Details |
+| :--- | :--- | :--- |
+| `heatmapplot` | Annotated, hierarchically clustered matrix | **Returns `ClusterMapPlotterNew`** (not `Axes`). After rendering, use `.ax_heatmap`, `.ax_row_dendrogram`, `.ax_col_dendrogram`, and `.cbars` (a list of `Colorbar` objects); there is no `.cbar_ax` attribute. |
+| `dotplot` | Matrix where size encodes frequency and color encodes intensity | **Returns `DotClustermapPlotterNew` object**. Internal handles: `.ax`, `.cbar_ax`, `.dot_legend`. |
+| `confusionplot` | Classification predicted vs observed confusion matrix | Returns `Axes` with normalized counts and annotations. |
+
+---
+
+## 4. Proportions, Sets & Flow
+
+| Function | Primary Use Case | Key Parameters |
+| :--- | :--- | :--- |
+| `stackplot` | Proportional composition across categories | Accepts `pairs=`; `test='auto'` by default (Fisher exact for a 2x2 table, chi-squared otherwise). |
+| `vennplot` | Overlap among 2 or 3 sets | Returns `matplotlib-venn` object. Best for $\le 3$ sets. |
+| `upsetplot` | Scalable set intersections | Returns panel axes. The publication standard for $\ge 4$ intersecting sets. |
+| `sankeyplot` | Flow network between source and target categories | Visualizes transitions and allocation proportions. |
+
+---
+
+## 5. Survival, Clinical & Model Summaries
+
+| Function | Primary Use Case | Statistical Highlights |
+| :--- | :--- | :--- |
+| `survivalplot` | Kaplan-Meier survival curves | Log-rank test p-values, pairwise hazard ratios (`p_adjust=`), at-risk table. `descriptive_only=True` suppresses tests. |
+| `cumulativeincidenceplot` | Competing-risk cumulative incidence | Gray's test for subdistribution hazards. |
+| `forestplot` | Effect estimates (odds/hazard ratios) with 95% CIs | Displays point estimates, confidence bars, and reference null line. |
+| `CoxModel`, `LogisticModel` | Regression models directly feeding the plots above | Programmatic model fitting. |
+
+---
+
+## 6. Genomics & Model Evaluation
+
+| Function | Primary Use Case | Key Parameters |
+| :--- | :--- | :--- |
+| `volcanoplot` | Differential expression: fold change vs significance | `fold_change_threshold=0.5`, `pvalue_threshold=0.05`, `n_show=10`, automated gene labeling. |
+| `gseaplot` | Gene Set Enrichment Analysis running enrichment score | Peak ES line, hit bar, rank metric ranking plot. |
+| `rocplot` | Receiver Operating Characteristic (ROC) curves | Displays AUC, pointwise confidence intervals, pairwise AUC contrast tests. |
+| `precisionrecallplot` | Precision-Recall (PR) curves | Average Precision (AP) metrics, ideal for imbalanced classification. |
+| `calibrationplot` | Probability reliability diagrams | Brier score, calibration curve with perfect calibration diagonal. |
+
+---
+
+## 7. Statistical Result Accessors (Non-Destructive)
+
+Never attempt to parse p-values or sample counts from drawn text labels. Use `cnsplots` built-in programmatic accessors:
+
+### Group Comparisons (`boxplot`, `violinplot`, `barplot`, `lollipopplot`, `stackplot`)
+```python
+stats_df = cns.get_comparison_results(ax)
+# Columns (13): ['group1', 'group2', 'test', 'alternative', 'paired', 'n1', 'n2',
+#                'pvalue_raw', 'pvalue_adjusted', 'p_adjust',
+#                'pvalue_annotation', 'significant', 'annotation']
+```
+
+### Survival Analysis (`survivalplot`)
+```python
+survival_df = cns.get_survival_results(ax)
+# Detached DataFrame containing median survival, landmark survival rates, hazard ratios, and log-rank p-values.
+```
+
+### Diagnostic Evaluation (`rocplot`, `precisionrecallplot`, `calibrationplot`)
+```python
+roc_results = cns.get_roc_results(
+    ax
+)  # dict with 'curves', 'metrics', 'bands', 'comparisons'
+pr_results = cns.get_precision_recall_results(ax)
+cal_results = cns.get_calibration_results(ax)
+```

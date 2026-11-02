@@ -1,29 +1,35 @@
 {
   "name": "cnsplots",
-  "version": "1.8.0",
-  "updated": "2026-10-26",
-  "summary": "Publication-quality scientific figures in Python via the cnsplots package, including the rcParams style contract, grid/multi-panel composition patterns, dense journal-figure techniques, cross-panel color strategy, and Cell/Nature/Science figure specifications.",
-  "agents": [
-    "codex",
-    "claude-code"
-  ],
-  "install_path": "~/.codex/skills/cnsplots",
+  "version": "3.0.5",
+  "updated": "2026-11-02",
+  "summary": "Publication-ready scientific visualization in Python across major journals (Cell default, Nature, Science). Features an actionable 6-step closed-loop workflow (environment -> data profiling & plot mapping -> layout architecture & budgeting -> ~100 pt build with no font or marker blow-ups -> statistical truth extraction & cleanup -> output verification), dual execution modes (cnsplots native or pure matplotlib/seaborn via standalone cns_cell.mplstyle; seaborn optional), 360 dpi display/export, explicit pt units, and a dedicated references/plot-catalog.md.",
   "provenance": {
-    "relationship": "derivative-enhancement",
+    "relationship": "major-revision",
     "upstream_project": "cnsplots",
     "upstream_repo": "https://github.com/faridrashidi/cnsplots",
-    "upstream_skill_path": "src/cnsplots/_agent_skill/cnsplots",
+    "upstream_skill_url": "https://github.com/faridrashidi/cnsplots/tree/main/src/cnsplots/_agent_skill/cnsplots",
+    "upstream_docs": "https://cnsplots.farid.one/latest/api.html",
+    "upstream_gallery": "https://cnsplots.farid.one/latest/examples/index.html",
     "upstream_license": "BSD-3-Clause",
     "upstream_license_url": "https://github.com/faridrashidi/cnsplots/blob/main/LICENSE.md",
-    "upstream_commit_pushed_at": "2026-08-10T13:24:51Z",
-    "verified_against_package_version": "0.8.0"
-  },
-  "verification": {
-    "date": "2026-10-26",
-    "python": "3.12.14",
-    "matplotlib": "3.10.9",
-    "method": "mamba env (cnsplots 0.8.0) upgraded in place from 0.7.0 and re-verified end to end. Re-measured all 78 cns.settings values and the 33-key rcParams diff and confirmed both are byte-identical to 0.7.0, so the palette_seq=gnuplot and Helvetica-first font_sans_serif findings and their viridis/Arial overrides still stand. Diffed the upstream agent skill between tags v0.7.0 and v0.8.0 (+51/-13 lines) and confirmed the release is a units-and-export change: figure()/multipanel()/panel() gained keyword-only unit= and dimensions are now documented as points, figure() now returns the Figure instead of None, savefig() gained fig=/dpi=/transparent=/bbox_inches=/pad_inches=, settings.context() now wraps matplotlib.rc_context and restores rcParams, and mp.newline() was reimplemented from a width-consuming spacer to a true row break. Ran all six bundled scripts and all six bundled templates on 0.8.0 with zero failures. Measured the canvas-versus-saved-size gap that motivates the new export controls: a 519-point (183.1 mm) multipanel canvas holding one 240x150 panel saves at 94.4 mm under the default bbox_inches='tight' and at 183.1 mm with bbox_inches=None, and verified the emitted journal preset now produces an exact 183.0 mm-wide page at max_width=183, unit='mm'. Confirmed newline() now breaks one row on a single call where 0.7.0 did not, and re-pinned the composition-patterns source citations to _multipanels.py lines 460/420/504. Verified the new public surface exists and behaves as documented: precisionrecallplot, calibrationplot, get_comparison_results (6 rows, 13 columns on tips x day pairs='all'), get_survival_results (DataFrame), get_roc_results/get_precision_recall_results/get_calibration_results, available_palettes (28 qualitative + 5 continuous), register_palette, and get_palette_colors. Corrected two claims that were already wrong before this release: the Ecotyper1 membership of the named constants, and the assertion that diverging colormap names are usable as color_cycle. Fixed dump_style.py to enumerate palettes through available_palettes(), which recovered six names it had been silently omitting.",
-    "result": "pass",
-    "notes": "Figure density and all journal conversions are unchanged from 1.7.0 because the numeric geometry is unchanged; 0.8.0 renames the unit from pixels to points without altering the inch conversion. The vendored upstream showcase is byte-identical between v0.7.0 and v0.8.0, so templates/upstream-showcase/ needed only a version stamp. mutool is still absent, so SVG export falls back to plain matplotlib SVG with a RuntimeWarning; unrelated to skill correctness."
+    "changes": [
+      "Restructured SKILL.md into a deterministic, data-driven 6-step closed-loop workflow (SOP).",
+      "Decoupled the 30+ plot function catalog into a standalone references/plot-catalog.md.",
+      "Exported standalone styles/cns_cell.mplstyle for zero-dependency fallback via pure matplotlib/seaborn.",
+      "Added proactive environment branching: prompt user to choose between installing cnsplots or using pure mplstyle.",
+      "Enforced a ~100 pt (80, 100, 120, 150) panel sizing baseline and banned font or marker blow-ups; Mode B sets marker and patch geometry in the style sheet.",
+      "Set the Cell Press 10-color palette as the skill's house style (the cnsplots package default remains Ecotyper1), with support for Nature, Science, and other journal styles.",
+      "Set an Arial-first font stack with Nimbus Sans / Liberation Sans Linux fallbacks across templates and workflows.",
+      "Encapsulated default house style configurations (Cell palette, viridis, Arial-first fonts, pdf/svg fonttype, 360 dpi display/export, opaque background) into reusable apply_house_style() functions.",
+      "Enforced copying cns_cell.mplstyle into project directories for isolated, reproducible pure matplotlib/seaborn execution.",
+      "Generated cns_cell.mplstyle and cell_colors.py from cns.palettes('Cell') and added a --check drift test in export_mplstyle.py.",
+      "Standardized final delivery on PDF (SVG for editing, PNG preview only) and visual inspection instead of file-existence scripts.",
+      "Made units explicit: cns.figure(..., unit='pt'), multipanel(..., unit='pt'), and renamed the sizing reference to panel-sizing-100pt.md.",
+      "Unified display, preview, and export dpi at 360.",
+      "Vendored the cnsplots Figure 1 and Figure 2 showcases under templates/upstream-showcase/ and re-tuned them to the house style: 360 display/export dpi, Cell palette, Arial-first fonts, pt units, pixel pads rescaled by 360/144, and repaired heatmap, dotplot, and lollipop legend/tick layouts.",
+      "Documented matplotlib 3.10 vs 3.11 figsize units; 3.11+ examples use the explicit (width, height, unit) form.",
+      "Showcase scripts emit PDF and SVG next to the scripts by default.",
+      "Disconnect the cnsplots multipanel draw handler before export to prevent the 0.8.0 relayout-on-draw behavior from shifting panels when savefig changes dpi."
+    ]
   }
 }
