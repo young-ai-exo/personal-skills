@@ -1,7 +1,6 @@
 # Adding a skill
 
-1. Create `skills/<name>/` with `SKILL.md`, `skill.json`, `CHANGELOG.md`, and
-   `NOTICE.md` if any content is upstream-derived.
+1. Create `skills/<name>/` with `SKILL.md`, `skill.json`, and `CHANGELOG.md`.
 2. `SKILL.md` frontmatter needs `name` and a `description` stating both what the
    skill does and when to trigger it.
 3. Keep `SKILL.md` lean; push detail into `references/` for progressive disclosure.
@@ -13,5 +12,6 @@
 ## Provenance rules
 
 Never present upstream work as original. Set `origin` correctly, and for derived
-skills include the upstream repo, license, license URL, and a file-level table in
-`NOTICE.md` marking what is derived vs. original.
+skills include the upstream repo, license, and license URL in `skill.json` and
+`SKILL.md`, marking what is derived vs. original. A separate `NOTICE.md` is
+optional.

@@ -19,7 +19,7 @@
   <section class="page-header">
     <div class="container">
       <h1>cnsplots</h1>
-      <p>Publication-quality scientific figures in Python with Cell, Nature, and Science styling.</p>
+      <p>Publication-ready scientific figures in Python with Cell, Nature, and Science styling.</p>
     </div>
   </section>
 
@@ -27,242 +27,109 @@
     <div class="container">
 
 <div class="badges page-badges">
-  <span class="badge">v1.8.0</span>
+  <span class="badge">v3.0.5</span>
   <span class="badge">derivative-enhancement</span>
   <span class="badge">BSD-3-Clause</span>
   <span class="badge verified">verified · cnsplots 0.8.0</span>
 </div>
 
-<p>Generates, revises, and debugs publication-quality scientific figures in Python
-using the <a href="https://github.com/faridrashidi/cnsplots">cnsplots</a> package.
-Triggers on requests for journal-style plots, multi-panel or grid figures,
-survival/volcano/GSEA/ROC/heatmap plots, or Illustrator-editable vector output.
-Also covers applying the cnsplots style to plain matplotlib, seaborn, or scanpy
-axes.</p>
+<p>Creates, revises, and debugs publication-ready scientific figures in Python
+using <a href="https://github.com/faridrashidi/cnsplots">cnsplots</a>, matplotlib,
+seaborn, or scanpy. Enforces a closed-loop 6-step workflow, a ~100 pt panel
+sizing contract, Cell-palette and Arial-first typography, and editable PDF/SVG
+output. Supports native cnsplots (Mode A) and a bundled pure
+matplotlib/seaborn style sheet (Mode B).</p>
 
-<blockquote><p><strong>Upstream ships its own skill.</strong> Running
-<code>cnsplots skill install</code> installs the official version. This one adds
-executable verification on top. Prefer upstream if you want to track it exactly.</p></blockquote>
-
-<h2>What it adds over upstream</h2>
+<h2>What the skill enforces</h2>
 <div class="grid-2">
   <div class="grid-card">
-    <h3><code>check_env.py</code></h3>
-    <p>Reports interpreter, package version, backend, and whether mutool is installed before any plotting.</p>
+    <h3>6-step closed loop</h3>
+    <p>Bootstrap environment and style → profile data and select the plot type →
+      choose layout and canvas budget → build at ~100 pt proportions → extract
+      statistical truth → render a preview and inspect it visually.</p>
   </div>
   <div class="grid-card">
-    <h3><code>inspect_api.py</code></h3>
-    <p>Prints the installed signature and docstring so the agent stops guessing at API shapes that shift between releases.</p>
+    <h3>100 pt panel contract</h3>
+    <p>Panels are calibrated around 80–150 pt, with 100 pt as the baseline.
+      Dimensions are physical points, not screen pixels; 100 pt is 500 px at
+      360 dpi.</p>
   </div>
   <div class="grid-card">
-    <h3><code>validate_output.py</code></h3>
-    <p>Checks the artifact exists, is non-empty, has correct magic bytes, and counts SVG text elements to catch text flattened into paths.</p>
+    <h3>House style</h3>
+    <p>Cell 10-color qualitative palette, viridis continuous palette,
+      Arial-first font stack, 8/7 pt type hierarchy, 0.5 pt spines, opaque white
+      background, and 360 dpi display/export.</p>
   </div>
   <div class="grid-card">
-    <h3><code>dump_style.py</code></h3>
-    <p>Measures the rcParams diff, every settings value, the accepted palette names, and the color constants from the installed package, so no documented number is transcribed by hand.</p>
+    <h3>Dual execution modes</h3>
+    <p>Mode A uses the cnsplots package. Mode B copies the generated
+      <code>cns_cell.mplstyle</code> into the project and uses pure
+      matplotlib/seaborn with no cnsplots dependency.</p>
   </div>
   <div class="grid-card">
-    <h3><code>troubleshooting.md</code></h3>
-    <p>25 documented failure modes with fixes, each reproduced against the installed version.</p>
+    <h3>Guardrails</h3>
+    <p>No manual font or marker blow-ups, fixed category order via
+      <code>hue_order</code> or <code>order</code>, explicit statistical test
+      reporting, and no fabricated plot structures.</p>
   </div>
   <div class="grid-card">
-    <h3><code>rcparams.md</code> + <code>settings-catalog.md</code></h3>
-    <p>The full style contract: which rcParams the package sets, and the rule for custom artists  -  inherit the value, or read it from config, never restate it.</p>
-  </div>
-  <div class="grid-card">
-    <h3><code>composition-patterns.md</code></h3>
-    <p>When to use a matplotlib grid, <code>multipanel</code>, or a <code>GridSpec</code> inside a host panel, with the measurements behind each rule.</p>
-  </div>
-  <div class="grid-card">
-    <h3><code>dense-figures.md</code></h3>
-    <p>Full journal figures: negative offsets that reclaim reserved space, embedded raster images, composite plotter internal axes, and reworking generated annotations. Derived from reproducing the upstream showcase.</p>
-  </div>
-  <div class="grid-card">
-    <h3><code>recommended_overrides.py</code></h3>
-    <p>Measured reasoning for overriding palette_seq to viridis (gnuplot is non-monotonic in CIE L* with CV 0.66 and 39 greyscale collisions) and moving Arial ahead of Helvetica (Cell requires Arial; macOS defaults embed Helvetica). Emits a ready three-line block with --code.</p>
-  </div>
-  <div class="grid-card">
-    <h3><code>journal-specs.md</code> + <code>journal_preset.py</code></h3>
-    <p>Cell, Nature and Science column widths converted to cnsplots points, plus type, line-weight, resolution, format and colour-accessibility limits, each with its source URL. The script checks the installed defaults against a chosen journal and can emit a ready settings block.</p>
-  </div>
-  <div class="grid-card">
-    <h3><code>color-strategy.md</code></h3>
-    <p>One palette per figure, keeping a variable on one color across panels, qualitative vs sequential vs diverging, and colour-vision plus greyscale legibility checks. Audits the showcase's eight-palette variety and explains why that is the wrong model to copy.</p>
-  </div>
-  <div class="grid-card">
-    <h3><code>templates/</code></h3>
-    <p>Four runnable layout templates  -  uniform grid, labeled heterogeneous figure, an aligned grid embedded in a labeled figure, and a dense showcase-style figure. The upstream showcase source is vendored alongside them, verbatim, as reference material.</p>
+    <h3>PDF-first delivery</h3>
+    <p>PDF is the primary artifact; SVG is for Illustrator editing; a 360 dpi
+      PNG is only a visual preview. The model inspects the rendered preview
+      instead of checking only that a file exists.</p>
   </div>
 </div>
 
-<h2>Workflow the skill enforces</h2>
-<ul>
-<li>Probe the environment before writing code.</li>
-<li>Inspect the data, then confirm each function signature against the installed version.</li>
-<li>Build with <code>matplotlib.use("Agg")</code> for headless runs.</li>
-<li>Save, then <em>validate the artifact</em>  -  never claim success on unrun code.</li>
-<li>Report the script, output path, and every scientific assumption made.</li>
-</ul>
-
-<h2>Traps it guards against</h2>
-<h3>Points, not inches</h3>
-<p><code>cns.figure(180, 150)</code> is 180×150 <strong>points (1/72 inch)</strong>,
-rendered at 144 dpi, so the raster is 360×300. Writing <code>cns.figure(6, 4)</code>
-out of matplotlib habit yields a 6×4 point canvas. Pass <code>unit="in"</code> or
-<code>unit="mm"</code> for a physical size. Separately, the default
-<code>savefig_bbox='tight'</code> crops the saved file to its artists, so a
-journal column width set on the canvas is not necessarily the width on disk;
-<code>bbox_inches=None</code> preserves the full canvas.</p>
-
-<h3>Return types are not uniform</h3>
-<p><code>heatmapplot</code> and <code>dotplot</code> return backend-native plotter
-objects, <code>vennplot</code> returns a matplotlib-venn object, and
-<code>upsetplot</code> returns panel axes. None are a plain <code>Axes</code>, so a
-bare <code>.set(...)</code> raises <code>AttributeError</code>. In 0.8.0
-<code>figure</code> returns the styled <code>Figure</code> rather than
-<code>None</code>, while <code>setup_matplotlib</code>, <code>setup_ax</code>, and
-<code>take_legend_out</code> still return <code>None</code>.</p>
-
-<h3>multipanel does not align panel edges</h3>
-<p>Each panel's outer width includes a reserve measured from its
-<em>rendered</em> y-axis decorations, so panels whose tick labels differ in width
-get different axes left edges. Three <code>below=</code>-stacked panels at y
-magnitudes 1, 1e5, and 10 landed at x0 = 0.065 / 0.114 / 0.075. Neither
-<code>pad_left</code> nor <code>ax.set_position()</code> fixes it; the latter is
-reverted on save by multipanel's own draw handler. For an aligned block, one host
-panel is subdivided with <code>GridSpec</code> instead.</p>
-
-<h3>Silent statistical annotations</h3>
-<p><code>kdeplot</code> with a two-level <code>hue</code> runs a two-sample
-Kolmogorov-Smirnov test and prints <code>P = ...</code> on the axes.
-<code>add_mode=False</code> does not suppress it, and three or more levels produce
-nothing at all. The skill requires inspecting <code>ax.texts</code> and either
-naming that test in the caption or removing the annotation deliberately.</p>
-
-<h3>Two overrides are recommended before plotting</h3>
-<p>The installed <code>palette_seq='gnuplot'</code> is non-monotonic in perceptual
-lightness (CIE L*) with step-size CV 0.66 (identical to the rainbow counterexample
-<code>jet</code> at 0.65) and produces 39 value pairs &gt;0.1 apart in data space
-that collapse to within 1 L* in greyscale, making quantitative heatmaps misleading.
-<code>viridis</code> is strictly monotonic (CV 0.07, zero collisions). The installed
-<code>font_sans_serif</code> prioritises Helvetica, so Cell Press submissions from
-macOS embed Helvetica rather than the required Arial. Override both at script top;
-see <code>recommended_overrides.py --code</code>.</p>
-
-<h3>Two defaults are not journal-compliant</h3>
-<p>Read against the publishers' own author pages: <code>savefig_dpi</code> defaults
-to 288, below the 300 dpi floor Cell, Nature and Science all require, and
-<code>title_fontsize</code> defaults to 8 pt, above Nature's 7 pt cap for in-figure
-text. Line weight at 0.5 pt satisfies all three. The bundled script reports these
-against the installed version rather than a transcribed table. Also note the
-journal-named palettes are journal-<em>styled</em>, not compliant: the
-<code>Science</code> palette places red and green adjacent, which Science's own
-guidance forbids.</p>
-
-<h3><code>tight_layout</code> is not multipanel's counterpart</h3>
-<p><code>multipanel</code> self-corrects through a <code>draw_event</code> handler it
-connects automatically, because a panel's y-axis decoration width is only knowable
-after rendering. It keeps axes at exactly the requested pixel size and adjusts the
-figure around them; <code>tight_layout</code> does the opposite, resizing axes inside
-a fixed figure. On a multipanel figure <code>tight_layout()</code> is a measured
-no-op that only emits a warning, since panel axes carry no
-<code>SubplotSpec</code>. Reserve it for the <code>plt.subplots</code> path.</p>
-
-<h3>The showcase is a palette catalog, not a color scheme</h3>
-<p>Audited every colour decision in the vendored source: Figure 1 uses eight
-palettes across 18 panels, and four panels plotting iris <code>species</code> render
-<code>setosa</code> in four different colours. A real figure uses one palette and
-keeps a category on one colour, via a shared <code>hue_order</code>. The skill also
-ships a greyscale luma check, which finds real collisions in the default
-<code>Ecotyper1</code>: entries 4 and 6 differ by 0.005 luma.</p>
-
-<h3>Density comes from interlocking, not small margins</h3>
-<p>A packed figure stacks short panels into the vertical band a tall neighbour
-occupies, via <code>below=</code>. Both upstream showcase figures use three such
-stacks. Measured as the fraction of interior all-empty pixel rows, upstream
-Figure 1 is 4.77% and Figure 2 is 5.44%; the bundled dense template sits at 4.22%,
-down from 7.96% before the stacks were added. That metric is documented as a
-reusable acceptance check.</p>
-
-<h3>Row membership is not readable from either edge</h3>
-<p>Panels of differing heights share a row while agreeing on neither
-<code>y0</code> nor <code>y1</code>, so both give false wraps. Grouping by vertical
-overlap reproduces multipanel's internal row grouping using public API only; the
-dense template ships that check and prints the band structure on save.</p>
-
-<h3>A zero exit code is not a passing figure</h3>
-<p>Every layout defect found while building these versions  -  a silently wrapped
-multipanel row, tick labels crashing into the panel below, an unrequested
-p-value, overlapping heatmap legends in the reproduced showcase  -  exited zero and
-wrote a valid file. The skill requires rendering a PNG and looking at it, with
-<code>savefig_transparent</code> turned off so the preview is not mistaken for a
-blank image.</p>
-
-<h2>Verified example</h2>
-<pre><code>import matplotlib
-matplotlib.use("Agg")
-
-import cnsplots as cns
-
-df = cns.datasets.load_dataset("tips")
-
-mp = cns.multipanel(max_width=540)
-ax_a = mp.panel("A", width=150, height=150)
-cns.boxplot(data=df, x="day", y="total_bill", ax=ax_a)
-ax_b = mp.panel("B", width=150, height=150)
-cns.scatterplot(data=df, x="total_bill", y="tip", ax=ax_b)
-cns.savefig("multipanel.svg")</code></pre>
-
-<h2>Verification record</h2>
-<p>Tested 2026-10-26 on Python 3.12.14 with cnsplots 0.8.0 and matplotlib 3.10.9.
-All six scripts including <code>dump_style.py greyscale</code> (now CIE L*), <code>dump_style.py colormap</code>, <code>journal_preset.py</code> and <code>recommended_overrides.py</code> run with correct exit
-codes, all four templates plus the two vendored upstream showcase scripts execute
-and were rendered to PNG and visually inspected, and every published rcParams and
-settings value is measured from the installed package rather than transcribed. Panel
-alignment, <code>below=</code> stacking, <code>GridSpec</code> durability across
-<code>savefig</code>, and the <code>inset_axes</code> alternative were each tested
-empirically. The upstream showcase Figure 1 and Figure 2 were reproduced end to
-end and inspected, then each showcase-only technique was verified independently
-rather than copied  -  including whether the example's private
-<code>_capture_detached_axes_layout</code> call is load-bearing, which it is not.
-Cell, Nature and Science figure requirements were read from the publishers' own
-author pages, converted to points, and a full Nature-compliant preset was run end
-to end. The documented <code>mutool</code>-missing fallback was confirmed to warn
-rather than fail.</p>
-
-<h2>Provenance</h2>
+<h2>Bundled files</h2>
 <div class="split-2">
   <div class="split-col">
-    <h3>Derived from upstream</h3>
+    <h3>References</h3>
     <ul>
-      <li><code>SKILL.md</code></li>
+      <li><code>references/journal-specs.md</code></li>
+      <li><code>references/panel-sizing-100pt.md</code></li>
       <li><code>references/plot-catalog.md</code></li>
+      <li><code>references/composition-guide.md</code></li>
+    </ul>
+    <h3>Scripts &amp; styles</h3>
+    <ul>
+      <li><code>scripts/check_env.py</code></li>
+      <li><code>scripts/export_mplstyle.py</code> (<code>--check</code> / <code>--write</code>)</li>
+      <li><code>scripts/inspect_api.py</code></li>
+      <li><code>styles/cns_cell.mplstyle</code></li>
+      <li><code>styles/cell_colors.py</code></li>
     </ul>
   </div>
   <div class="split-col">
-    <h3>Original</h3>
+    <h3>Templates</h3>
     <ul>
-      <li><code>references/troubleshooting.md</code></li>
-      <li><code>references/rcparams.md</code></li>
-      <li><code>references/settings-catalog.md</code></li>
-      <li><code>references/composition-patterns.md</code></li>
-      <li><code>references/style-bridge.md</code></li>
-      <li><code>references/dense-figures.md</code></li>
-      <li><code>scripts/*.py</code></li>
-      <li><code>templates/*.py</code></li>
+      <li><code>templates/cns_multipanel_cell.py</code></li>
+      <li><code>templates/cns_single_figure.py</code></li>
+      <li><code>templates/pure_mpl_grid.py</code></li>
+      <li><code>templates/pure_seaborn_cell.py</code></li>
+      <li><code>templates/upstream-showcase/</code></li>
     </ul>
+    <h3>Upstream showcases</h3>
+    <p>The two official cnsplots gallery figures are vendored and re-tuned to the
+      house style: pt units, 360 dpi, Cell palette, Arial-first fonts, and
+      corrected legend layouts. Their checked-in PDF and SVG outputs are
+      included.</p>
   </div>
 </div>
+
+<h2>Version history</h2>
+<p>v3 is the canonical version. The former v1 (1.0.0–1.8.0) and v2 (2.0.0)
+skills were retired; <a href="https://github.com/HarnessYoung/personal-skills/blob/main/skills/cnsplots/CHANGELOG.md">CHANGELOG.md</a>
+continues their history and records the 3.x line.</p>
+
 <p>Upstream: <a href="https://github.com/faridrashidi/cnsplots">faridrashidi/cnsplots</a>
-(<code>src/cnsplots/_agent_skill/cnsplots</code>) by Farid Rashidi, BSD-3-Clause.</p>
+by Farid Rashidi, BSD-3-Clause. Attribution and provenance are recorded in
+<code>SKILL.md</code> and <code>skill.json</code>.</p>
 
 <h2>Files</h2>
 <ul>
 <li><a href="https://github.com/HarnessYoung/personal-skills/blob/main/skills/cnsplots/SKILL.md">SKILL.md</a></li>
 <li><a href="https://github.com/HarnessYoung/personal-skills/blob/main/skills/cnsplots/skill.json">skill.json</a></li>
 <li><a href="https://github.com/HarnessYoung/personal-skills/blob/main/skills/cnsplots/CHANGELOG.md">CHANGELOG.md</a></li>
-<li><a href="https://github.com/HarnessYoung/personal-skills/blob/main/skills/cnsplots/NOTICE.md">NOTICE.md</a></li>
 </ul>
 
     </div>

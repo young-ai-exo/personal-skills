@@ -1,14 +1,14 @@
 {
   "registry_version": 1,
   "owner": "HarnessYoung",
-  "updated": "2026-10-30",
+  "updated": "2026-11-02",
   "skills": [
     {
       "name": "cnsplots",
-      "version": "1.8.0",
+      "version": "3.0.5",
       "path": "skills/cnsplots",
-      "summary": "Publication-quality scientific figures in Python via the cnsplots package, including the rcParams style contract, grid/multi-panel composition patterns, dense journal-figure techniques, and cross-panel color strategy.",
-      "tags": ["python", "visualization", "science", "matplotlib", "publication", "rcparams", "multipanel", "figure-layout", "color-palettes", "journal-guidelines"],
+      "summary": "Publication-ready scientific figures in Python: a 6-step closed-loop workflow, ~100 pt panel calibration, Cell palette and Arial-first typography, dual cnsplots/matplotlib execution modes, and editable PDF/SVG output.",
+      "tags": ["python", "visualization", "science", "matplotlib", "seaborn", "publication", "multipanel", "figure-layout", "color-palettes", "journal-guidelines"],
       "agents": ["codex", "claude-code"],
       "origin": "derivative-enhancement",
       "upstream": "https://github.com/faridrashidi/cnsplots",
