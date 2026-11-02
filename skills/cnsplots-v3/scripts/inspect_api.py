@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 """Print installed signatures and docstrings for public cnsplots functions.
 
+Uses stdout directly instead of loguru so the output stays clean and the
+tool works in any environment where cnsplots is importable.
+
 Usage:
     python3 inspect_api.py boxplot scatterplot multipanel
     python3 inspect_api.py --list
@@ -11,34 +14,38 @@ from __future__ import annotations
 import inspect
 import sys
 
-try:
-    import cnsplots as cns
-except ModuleNotFoundError:
-    sys.exit("cnsplots is not installed; run check_env.py first.")
+import cnsplots as cns
+
+
+def emit(message: str = "") -> None:
+    """Write one line to stdout without requiring a logging dependency."""
+    sys.stdout.write(f"{message}\n")
 
 
 def show(name: str) -> None:
+    """Print the signature and docstring for one public cnsplots attribute."""
     obj = getattr(cns, name, None)
     if obj is None:
-        print(f"!! {name}: not a public cnsplots attribute")
+        emit(f"!! {name}: not a public cnsplots attribute")
         return
 
-    print("=" * 72)
+    emit("=" * 72)
     try:
-        print(f"{name}{inspect.signature(obj)}")
+        emit(f"{name}{inspect.signature(obj)}")
     except (TypeError, ValueError):
-        print(f"{name}: <no introspectable signature> ({type(obj)})")
-    print("-" * 72)
-    print(inspect.getdoc(obj) or "<no docstring>")
-    print()
+        emit(f"{name}: <no introspectable signature> ({type(obj)})")
+    emit("-" * 72)
+    emit(inspect.getdoc(obj) or "<no docstring>")
+    emit()
 
 
 def main(argv: list[str]) -> int:
-    print(f"cnsplots {cns.__version__}\n")
+    """Print signatures for the requested names, or list all public names."""
+    emit(f"cnsplots {cns.__version__}\n")
 
     if not argv or argv[0] in {"--list", "-l"}:
         for name in sorted(getattr(cns, "__all__", [])):
-            print(name)
+            emit(name)
         return 0
 
     for name in argv:
@@ -47,4 +54,4 @@ def main(argv: list[str]) -> int:
 
 
 if __name__ == "__main__":
-    raise SystemExit(main(sys.argv[1:]))
+    sys.exit(main(sys.argv[1:]))

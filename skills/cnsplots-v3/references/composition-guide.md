@@ -32,7 +32,7 @@ $$\text{Total Width} = \text{margin\_left} + \text{left\_reserve} + \text{width}
 
 ## 3. Row Wrapping & Newline
 
-In `cns.multipanel(max_width=493)`:
+In `cns.multipanel(max_width=493, unit="pt")`:
 * Panels flow left to right and wrap to the next row when the cumulative width exceeds `max_width`.
 * **Budgeting**: Budget not just axes `width`, but also labels and margins (~30–50 pt extra per panel). Two 100 pt panels typically need ~280 pt total width.
 * **Force New Row**: Call `mp.newline()` to immediately break to the next row.

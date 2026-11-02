@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-"""Environment and capability probe for cnsplots-v2 skill.
+"""Environment and capability probe for the cnsplots-v3 skill.
 
-Detects whether native cnsplots (Mode A) is available or if fallback to
-bundled cns_cell.mplstyle (Mode B) should be used.
+Runs with the standard library only, so it can report on an environment
+before cnsplots, matplotlib, seaborn, or loguru are installed. It uses stdout
+directly instead of loguru for that bootstrap reason.
 
 Usage:
     python3 check_env.py
@@ -10,81 +11,75 @@ Usage:
 
 from __future__ import annotations
 
-import importlib.util
+import importlib
+import pathlib
 import shutil
 import sys
-from pathlib import Path
 
-SKILL_DIR = Path(__file__).resolve().parent.parent
+SKILL_DIR = pathlib.Path(__file__).resolve().parent.parent
 MPLSTYLE_PATH = SKILL_DIR / "styles" / "cns_cell.mplstyle"
 
 
+def emit(message: str = "") -> None:
+    """Write one line to stdout without requiring a logging dependency."""
+    sys.stdout.write(f"{message}\n")
+
+
 def check_module(name: str) -> tuple[bool, str]:
+    """Return whether a module imports and its version string."""
     try:
-        mod = importlib.import_module(name)
-        ver = getattr(mod, "__version__", "ok")
-        return True, str(ver)
+        module = importlib.import_module(name)
     except ImportError:
         return False, "MISSING"
+    return True, str(getattr(module, "__version__", "ok"))
 
 
 def main() -> int:
-    print(f"python      : {sys.version.split()[0]}")
-    print(f"executable  : {sys.executable}")
+    """Report Mode A / Mode B readiness; exit non-zero only when neither is usable."""
+    emit(f"python      : {sys.version.split()[0]}")
+    emit(f"executable  : {sys.executable}")
 
     cns_ok, cns_ver = check_module("cnsplots")
-    _, mpl_ver = check_module("matplotlib")
-    _, sns_ver = check_module("seaborn")
+    mpl_ok, mpl_ver = check_module("matplotlib")
+    sns_ok, sns_ver = check_module("seaborn")
     _, pd_ver = check_module("pandas")
     _, np_ver = check_module("numpy")
 
-    print(
-        f"cnsplots    : {cns_ver} {'(Mode A: Native available)' if cns_ok else '(NOT installed)'}"
-    )
-    print(f"matplotlib  : {mpl_ver}")
-    print(f"seaborn     : {sns_ver}")
-    print(f"pandas      : {pd_ver}")
-    print(f"numpy       : {np_ver}")
+    cns_status = "(Mode A: native available)" if cns_ok else "(NOT installed)"
+    emit(f"cnsplots    : {cns_ver} {cns_status}")
+    emit(f"matplotlib  : {mpl_ver}")
+    emit(f"seaborn     : {sns_ver}")
+    emit(f"pandas      : {pd_ver}")
+    emit(f"numpy       : {np_ver}")
 
-    style_exists = MPLSTYLE_PATH.is_file()
-    print(f"mplstyle    : {'found' if style_exists else 'MISSING'} ({MPLSTYLE_PATH})")
+    style_status = "found" if MPLSTYLE_PATH.is_file() else "MISSING"
+    emit(f"mplstyle    : {style_status} ({MPLSTYLE_PATH})")
 
     mutool = shutil.which("mutool")
-    print(
-        f"mutool      : {'found at ' + mutool if mutool else 'missing (SVG falls back to plain matplotlib)'}"
+    mutool_status = (
+        f"found at {mutool}" if mutool else "missing (SVG falls back to plain matplotlib)"
     )
+    emit(f"mutool      : {mutool_status}")
 
-    print("\n--- Execution Mode Status ---")
+    emit("\n--- Execution Mode Status ---")
     if cns_ok:
-        print("[READY] Mode A: Full cnsplots active.")
-        print("  Can use cns.multipanel(), cns.figure(), auto statistical annotations.")
-        print(
-            "  Default palette: cns.settings.palette_qual = 'Cell' (Nature/Science/etc. also supported)"
-        )
-        print(
-            "  Default font   : cns.settings.font_sans_serif = ('Arial', 'Helvetica', ...)"
-        )
+        emit("[READY] Mode A: full cnsplots available.")
+        emit("  Package default palette: Ecotyper1; skill house style: Cell.")
+        emit("  Package default font: Helvetica-first; skill house style: Arial-first.")
         return 0
-    else:
-        print("[FALLBACK] cnsplots is not installed.")
-        print(
-            "  Mode B is available using pure matplotlib / seaborn with cns_cell.mplstyle."
-        )
-        print("\nACTION REQUIRED for Agent:")
-        print("  Prompt the user with the following choice before proceeding:")
-        print(
-            "  'The cnsplots package is not installed in the active Python environment. Would you prefer to:'"
-        )
-        print(
-            "  '  1. (Recommended) Install cnsplots (pip install cnsplots) for multi-panel flow layouts & stats annotations?'"
-        )
-        print(
-            "  '  2. Copy cns_cell.mplstyle into your project and use native matplotlib / seaborn (Cell style, zero extra packages)?'"
-        )
-        return 1
+
+    if mpl_ok:
+        emit("[READY] Mode B: pure matplotlib available with cns_cell.mplstyle.")
+        seaborn_status = "available" if sns_ok else "MISSING (seaborn template unavailable)"
+        emit(f"  seaborn: {seaborn_status}")
+        emit("  Copy styles/cns_cell.mplstyle into the project before running Mode B.")
+        emit("  See SKILL.md Step 1 for the Mode A vs Mode B choice.")
+        return 0
+
+    emit("[BLOCKED] Neither cnsplots nor matplotlib is importable.")
+    emit("  Install cnsplots (Mode A) or matplotlib (Mode B) before plotting.")
+    return 1
 
 
 if __name__ == "__main__":
-    import importlib
-
     sys.exit(main())

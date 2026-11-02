@@ -1,8 +1,8 @@
 {
   "name": "cnsplots-v3",
-  "version": "3.0.0",
-  "updated": "2026-11-01",
-  "summary": "Publication-ready scientific visualization in Python across major journals (Cell default, Nature, Science). Features an actionable 6-step closed-loop workflow (environment -> data profiling & plot mapping -> layout architecture & budgeting -> ~100px build with zero overrides -> statistical truth extraction & cleanup -> output verification), dual execution modes (cnsplots native or zero-dependency pure matplotlib/seaborn via standalone cns_cell.mplstyle), and a dedicated references/plot-catalog.md.",
+  "version": "3.0.2",
+  "updated": "2026-11-02",
+  "summary": "Publication-ready scientific visualization in Python across major journals (Cell default, Nature, Science). Features an actionable 6-step closed-loop workflow (environment -> data profiling & plot mapping -> layout architecture & budgeting -> ~100 pt build with no font or marker blow-ups -> statistical truth extraction & cleanup -> output verification), dual execution modes (cnsplots native or pure matplotlib/seaborn via standalone cns_cell.mplstyle; seaborn optional), 360 dpi display/export, explicit pt units, and a dedicated references/plot-catalog.md.",
   "provenance": {
     "relationship": "major-revision",
     "upstream_project": "cnsplots",
@@ -17,11 +17,16 @@
       "Decoupled the 30+ plot function catalog into a standalone references/plot-catalog.md.",
       "Exported standalone styles/cns_cell.mplstyle for zero-dependency fallback via pure matplotlib/seaborn.",
       "Added proactive environment branching: prompt user to choose between installing cnsplots or using pure mplstyle.",
-      "Enforced ~100 px/pt (80, 100, 120, 150) panel sizing baseline and strict prohibition of font/marker manual overrides.",
-      "Set Cell Press 10-color palette as the default qualitative palette, with support for Nature, Science, and other journal styles.",
-      "Set Arial sans-serif typography as the default font hierarchy across templates and workflows.",
-      "Encapsulated default house style configurations (Cell palette, viridis, Arial, pdf_fonttype 42) into reusable apply_house_style() function.",
-      "Enforced copying cns_cell.mplstyle into project directories for isolated, reproducible pure matplotlib/seaborn execution."
+      "Enforced a ~100 pt (80, 100, 120, 150) panel sizing baseline and banned font or marker blow-ups; Mode B sets marker and patch geometry in the style sheet.",
+      "Set the Cell Press 10-color palette as the skill's house style (the cnsplots package default remains Ecotyper1), with support for Nature, Science, and other journal styles.",
+      "Set an Arial-first font stack with Nimbus Sans / Liberation Sans Linux fallbacks across templates and workflows.",
+      "Encapsulated default house style configurations (Cell palette, viridis, Arial-first fonts, pdf/svg fonttype, 360 dpi display/export, opaque background) into reusable apply_house_style() functions.",
+      "Enforced copying cns_cell.mplstyle into project directories for isolated, reproducible pure matplotlib/seaborn execution.",
+      "Generated cns_cell.mplstyle and cell_colors.py from cns.palettes('Cell') and added a --check drift test in export_mplstyle.py.",
+      "Standardized final delivery on PDF (SVG for editing, PNG preview only) and visual inspection instead of file-existence scripts.",
+      "Added examples/ with a measured pt/px/dpi/bbox_inches walkthrough, a pure-matplotlib demo, a contact sheet, and measurements.csv.",
+      "Made units explicit: cns.figure(..., unit='pt'), multipanel(..., unit='pt'), and renamed the sizing reference to panel-sizing-100pt.md.",
+      "Unified display, preview, and export dpi at 360."
     ]
   }
 }

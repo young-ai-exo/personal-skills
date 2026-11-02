@@ -2,6 +2,9 @@
 
 Comprehensive guide for preparing publication-quality figures across top scientific journals (**Cell Press**, **Nature**, **Science**). **Cell Press standards serve as the workspace default preset.**
 
+> [!NOTE]
+> **Submission targets vs. internal reports.** These values are guardrails for journal submission, where production editors check them. For internal reports and presentations, prioritize legible type, sensible proportions, and consistent layout; exact 5–7 pt caps and column widths are not required. Apply a Nature/Science preset only when a target journal is named.
+
 ---
 
 ## 1. Column Widths and Canvas Dimensions
@@ -18,7 +21,7 @@ Formula: $\text{points} = \frac{\text{mm}}{25.4} \times 72$
 
 > [!IMPORTANT]
 > **Canvas Width vs Saved Width**:
-> The default `savefig_bbox='tight'` crops whitespace to visible artists. When you need the saved output width to strictly equal the column width, pass `bbox_inches=None` to `savefig()`.
+> The default `savefig_bbox='tight'` crops whitespace to visible artists. When you need the saved output width to strictly equal the column width, pass `bbox_inches=None` to `savefig()`. Measured on cnsplots 0.8.0: a 519-pt (183 mm) canvas holding one 240×150 pt panel saves about **93 mm** wide with the default tight crop, and **183.1 mm** with `bbox_inches=None`. `pad_inches` applies only to the tight path. See [examples/README.md](../examples/README.md) for a visual pt/px/dpi walkthrough.
 
 ---
 
@@ -29,11 +32,18 @@ Formula: $\text{points} = \frac{\text{mm}}{25.4} \times 72$
 | **Typeface** | **Arial** (Required) | Helvetica or Arial | Helvetica preferred |
 | **In-figure Text Size** | **6–8 pt** | 5–7 pt | 5–7 pt (7 pt target) |
 | **Panel Labels** | **Capital A, B, C** (Bold) | **8 pt bold lowercase a, b, c** | **10 pt bold capital A, B, C** |
-| **Installed Default** | `title_fontsize=8`, `legend_fontsize=7` | *Note: Nature caps text at 7 pt* | Fits requirements |
+| **Installed Default** | `title_fontsize=8`, `legend_fontsize=7` | *Note: Nature caps text at 7 pt; use `settings.context(title_fontsize=7, legend_fontsize=6)`* | *Note: 7 pt target; use `settings.context(title_fontsize=7, legend_fontsize=5)`* |
 
 * **Arial-first Configuration (Workspace Default)**:
   ```python
-  cns.settings.font_sans_serif = ("Arial", "Helvetica", "Helvetica Neue", "DejaVu Sans")
+  cns.settings.font_sans_serif = (
+      "Arial",
+      "Helvetica",
+      "Nimbus Sans",
+      "Liberation Sans",
+      "DejaVu Sans",
+  )
+  cns.settings.panel_label_fontname = None  # inherit the resolved stack
   ```
 
 ---
@@ -55,7 +65,7 @@ Formula: $\text{points} = \frac{\text{mm}}{25.4} \times 72$
 
 * **`"Cell"` (Workspace Default)**:
   `['#c84c3a', '#2f7e8f', '#e1a22e', '#4e5a8a', '#5f9862', '#d07a6a', '#8b6fa8', '#7b8c9e', '#b85f7a', '#6b6b6b']`
-  Designed to prevent red-green clashes while maintaining distinct lightness separation.
+  Color-distinct, but **not greyscale-safe on its own**: the first two colors have CIE L* 49.2 and 48.9 (ΔL* = 0.3), and 11 of the 45 color pairs are within 5 L*. When a figure will be printed in black and white, add marker or linestyle differences rather than relying on the palette alone.
 * **`"Nature"`**:
   `[(0.90, 0.29, 0.21), (0.30, 0.73, 0.84), (0.0, 0.63, 0.53), ...]` (Nature Reviews Cancer-inspired).
 * **`"Science"`**:
@@ -71,7 +81,9 @@ cns.settings.palette_qual = "Nature"  # or "Science", "NEJM", "Tableau", etc.
 ## 5. Resolution & Vector Export
 
 * **Raster Resolution**: **≥ 300 DPI** across all three publishers; 500–1000 DPI for line art.
-* **Vector Formats**: **PDF** or **SVG** preferred. Live text must remain editable:
+* **cnsplots default**: `savefig_dpi = 288`, below the 300 DPI floor. The skill's `apply_house_style()` sets **360** for both display (`figure_dpi`) and export (`savefig_dpi`), and previews also use 360. Raise the export to 500–1000 for raster line art (Cell asks ≥1000).
+* **Vector Formats**: **PDF** is the universal submission format; **SVG** is for Illustrator editing; **PNG** is for preview only. Live text must remain editable:
   * `pdf.fonttype = 42` (TrueType font embedding)
   * `svg.fonttype = 'none'` (Live text for Illustrator, avoiding path conversion)
+* **Saving at an exact column width**: `cns.savefig(path, bbox_inches=None)` keeps the full canvas; the default `savefig_bbox='tight'` crops to the artists and can save much narrower than the configured column.
 

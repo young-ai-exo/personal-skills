@@ -1,91 +1,75 @@
 #!/usr/bin/env python3
-"""Template: Pure Seaborn with project-local cns_cell.mplstyle (Mode B).
+"""Template: Pure Seaborn using cns_cell.mplstyle (Mode B).
 
 Use when cnsplots is NOT installed.
 Setup prerequisite:
-    Copy 'cns_cell.mplstyle' and 'cell_colors.py' into your local project directory.
-
-Run:
-    python3 pure_seaborn_cell.py
+    mkdir -p ./styles && cp <SKILL_DIR>/styles/cns_cell.mplstyle ./styles/
 """
 
 from __future__ import annotations
 
+import pathlib
 import sys
-from pathlib import Path
 
-import matplotlib
-
-matplotlib.use("Agg")
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-# Add styles directory to path for color definitions if present locally or in skill
-SKILL_DIR = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(SKILL_DIR / "styles"))
-import cell_colors
+mpl.use("Agg")
 
-# --- Project-Local Style Configuration ----------------------------------------
-STYLE_PATH = Path("styles/cns_cell.mplstyle")
+STYLE_PATH = pathlib.Path("styles/cns_cell.mplstyle")
+LINE_WIDTH = 0.5  # seaborn filled boxplots ignore patch.linewidth
+STRIP_SIZE = 2.0  # cnsplots stripplot default
 
 
-def apply_house_style(style_file: Path | str = STYLE_PATH) -> None:
-    """Load project house style sheet and set seaborn palette."""
-    target = Path(style_file)
+def apply_house_style(style_file: pathlib.Path | str = STYLE_PATH) -> None:
+    """Load the house style sheet and use its color cycle as the seaborn palette."""
+    target = pathlib.Path(style_file)
     if not target.is_file():
-        if Path("cns_cell.mplstyle").is_file():
-            target = Path("cns_cell.mplstyle")
-        else:
-            raise FileNotFoundError(
-                f"Style file not found at {target}. Please copy 'cns_cell.mplstyle' "
-                "into your project directory (e.g. ./styles/cns_cell.mplstyle)."
-            )
+        target = pathlib.Path("cns_cell.mplstyle")
     plt.style.use(str(target))
-    cell_colors.apply_cell_palette_to_seaborn()
+    cycle = plt.rcParams["axes.prop_cycle"].by_key()["color"]
+    sns.set_palette(cycle)
 
 
-# Load sample data
-df = sns.load_dataset("tips")
-
-
-def main() -> None:
-    # 1. Apply unified house style
+def main() -> int:
+    """Render a boxplot with a strip overlay and save a PDF plus a PNG preview."""
     apply_house_style()
+    tips = sns.load_dataset("tips")
 
-    # 2. Target axes: ~110 pt wide, ~100 pt high
     fig, ax = plt.subplots(figsize=(2.2, 1.8))
-
-    # Boxplot with scatter strip overlay
     sns.boxplot(
-        data=df,
+        data=tips,
         x="day",
         y="total_bill",
         ax=ax,
-        fliersize=0,  # hide default fliers
+        fliersize=0,
         boxprops={"alpha": 0.8},
-        linewidth=0.5,
+        linewidth=LINE_WIDTH,
     )
-
-    # Individual observation points with jitter (marker size s=7 matches ~100 pt axes)
     sns.stripplot(
-        data=df,
+        data=tips,
         x="day",
         y="total_bill",
         color="black",
-        size=2.5,
+        size=STRIP_SIZE,
         alpha=0.4,
         jitter=0.2,
         ax=ax,
     )
-
-    ax.set_title("A", loc="left", fontweight="bold")
+    ax.set_title("A", loc="left")
     ax.set_xlabel("")
     ax.set_ylabel("Total Bill (USD)")
 
-    output = "pure_seaborn_cell.svg"
-    fig.savefig(output)
-    print(f"Generated Cell-compliant seaborn figure: {output}")
+    fig.savefig("pure_seaborn_cell.pdf", bbox_inches=None, transparent=False)
+    fig.savefig(
+        "pure_seaborn_cell_preview.png",
+        dpi=360,
+        bbox_inches="tight",
+        transparent=False,
+    )
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())
