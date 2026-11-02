@@ -3,14 +3,14 @@
 Version-controlled agent skills for [Codex](https://developers.openai.com/codex/)
 and Claude Code.
 
-📖 **[Browse the documentation site →](https://harnessyoung.github.io/personal-skills/)**
+📖 **[Browse the documentation site →](https://young-ai-exo.github.io/personal-skills/)**
 
 ## Skills
 
 | Skill | Version | Origin | Verified against | Docs |
 | --- | --- | --- | --- | --- |
-| [`cnsplots`](skills/cnsplots) | 1.8.0 | derivative of [faridrashidi/cnsplots](https://github.com/faridrashidi/cnsplots) (BSD-3-Clause) | cnsplots 0.8.0 | [page](https://harnessyoung.github.io/personal-skills/skills/cnsplots.html) |
-| [`python-script-conventions`](skills/python-script-conventions) | 1.4.0 | original (Yusheng Yang, MIT) | snapshot 2026-08-12 | [page](https://harnessyoung.github.io/personal-skills/skills/python-script-conventions.html) |
+| [`cnsplots`](skills/cnsplots) | 1.8.0 | derivative of [faridrashidi/cnsplots](https://github.com/faridrashidi/cnsplots) (BSD-3-Clause) | cnsplots 0.8.0 | [page](https://young-ai-exo.github.io/personal-skills/skills/cnsplots.html) |
+| [`python-script-conventions`](skills/python-script-conventions) | 1.4.0 | original (Yusheng Yang, MIT) | snapshot 2026-08-12 | [page](https://young-ai-exo.github.io/personal-skills/skills/python-script-conventions.html) |
 
 Machine-readable index: [`registry.json`](registry.json).
 
@@ -30,7 +30,7 @@ skills/<name>/
 ## Install
 
 ```bash
-git clone https://github.com/HarnessYoung/personal-skills.git
+git clone https://github.com/young-ai-exo/personal-skills.git
 cp -R personal-skills/skills/cnsplots ~/.codex/skills/cnsplots
 cp -R personal-skills/skills/python-script-conventions ~/.codex/skills/python-script-conventions
 ```
