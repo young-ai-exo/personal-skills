@@ -11,10 +11,9 @@ presents as one continuous script.
 import os
 from pathlib import Path
 
+import cnsplots as cns
 import matplotlib.image as mpimg
 from scipy import stats
-
-import cnsplots as cns
 
 (
     iris_df,

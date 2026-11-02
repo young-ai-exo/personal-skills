@@ -8,10 +8,8 @@ See README.md in this directory.
 import os
 from pathlib import Path
 
-import matplotlib.image as mpimg
-from scipy import stats
-
 import cnsplots as cns
+import matplotlib.image as mpimg
 
 (
     iris_df,

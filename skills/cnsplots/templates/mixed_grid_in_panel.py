@@ -22,7 +22,6 @@ import matplotlib
 
 matplotlib.use("Agg")  # headless; must precede pyplot import
 
-import matplotlib.pyplot as plt
 
 import cnsplots as cns
 

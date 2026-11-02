@@ -51,8 +51,8 @@ cns.setup_matplotlib()""")
 
         print(f"  Current palette_seq      : {cns.settings.palette_seq}")
         print(f"  Current font_sans_serif  : {cns.settings.font_sans_serif[:3]}")
-        print(f"\n  Recommended palette_seq  : viridis")
-        print(f"  Recommended font order   : ('Arial', 'Helvetica', 'Helvetica Neue', 'DejaVu Sans')")
+        print("\n  Recommended palette_seq  : viridis")
+        print("  Recommended font order   : ('Arial', 'Helvetica', 'Helvetica Neue', 'DejaVu Sans')")
         print("\nRun with --code to get a code block you can paste.")
 
     return 0

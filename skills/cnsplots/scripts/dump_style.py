@@ -171,10 +171,9 @@ def check_greyscale(palette: str, count: int | None = None) -> tuple:
     tell apart without color. Replaces the old Rec. 601 luma with the rigorous
     perceptual measure.
     """
+    import cnsplots as cns
     import matplotlib.colors as mcolors
     import numpy as np
-
-    import cnsplots as cns
 
     colors = cns.palettes(palette)
     if count:

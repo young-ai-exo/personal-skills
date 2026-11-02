@@ -18,10 +18,8 @@ import matplotlib
 
 matplotlib.use("Agg")  # headless; must precede pyplot import
 
-import matplotlib.image as mpimg
-import matplotlib.pyplot as plt
-
 import cnsplots as cns
+import matplotlib.image as mpimg
 
 # --- CONFIGURE ---------------------------------------------------------------
 MAX_WIDTH = 510
