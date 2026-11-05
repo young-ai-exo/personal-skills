@@ -44,6 +44,9 @@ python3 $SKILL_DIR/scripts/inspect_api.py <function_name>
 | `dotplot` | Matrix where size encodes frequency and color encodes intensity | **Returns `DotClustermapPlotterNew` object**. Internal handles: `.ax`, `.cbar_ax`, `.dot_legend`. |
 | `confusionplot` | Classification predicted vs observed confusion matrix | Returns `Axes` with normalized counts and annotations. |
 
+> [!IMPORTANT]
+> `heatmapplot` and `dotplot` delegate their color legends to PyComplexHeatmap, which defaults every colorbar to `extend="both"` (triangular caps). The house default is square: pass `legend_kws={"extend": "neither"}` to `heatmapplot` and `cmap_legend_kws={"extend": "neither"}` to `dotplot`. Add `extend="both"` back only when the user asks to flag out-of-range values.
+
 ---
 
 ## 4. Proportions, Sets & Flow

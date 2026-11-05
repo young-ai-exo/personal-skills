@@ -298,7 +298,7 @@ cmp = cns.heatmapplot(
     legend_vgap=2.0,
     legend_width=25.0,
     legend_order=["Z-score", "Ensemble", "blobs"],
-    legend_kws={"ticks": [-12.0, 11.0], "format": "%.0f"},
+    legend_kws={"extend": "neither", "ticks": [-12.0, 11.0], "format": "%.0f"},
     xticklabels_rotation=20,
     xlabel_labelpad=0,
 )

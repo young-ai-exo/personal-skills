@@ -7,6 +7,34 @@ This file continues the history of the former v1 skill (`skills/cnsplots`,
 v3 became the single, canonical skill under `skills/cnsplots`; the version
 number deliberately stays on the 3.x line.
 
+## [3.0.6] — 2026-11-05
+
+Square colorbars are now the house default.
+
+### Changed
+- Added the **Square Colorbar Contract**: every colorbar is a plain rectangle
+  with `extend="neither"`. Triangular end caps are opt-in only, when the user
+  explicitly asks to flag values outside the color scale.
+- `cns.heatmapplot` and `cns.dotplot` delegate their color legends to
+  PyComplexHeatmap, which injects `extend="both"` with a 10–15% `extendfrac`
+  into every colorbar. The skill now passes
+  `legend_kws={"extend": "neither"}` and
+  `cmap_legend_kws={"extend": "neither"}` respectively. The same rule covers
+  native matplotlib (`fig.colorbar(..., extend="neither")`, `contourf`) and
+  seaborn (`cbar_kws`).
+- Step 6 visual inspection now checks that colorbars have square ends.
+
+### Fixed
+- Regenerated the vendored Figure 1 and Figure 2 PDF/SVG artifacts with square
+  colorbars in Figure 1 panel R and Figure 2 panel C.
+
+### Verified
+- `ruff check` and `ruff format --check` pass on both modified showcase
+  scripts. `ty check` reports only the upstream nullability diagnostics already
+  documented in the showcase README.
+- Regenerated PDFs keep the checked-in page boxes (Figure 1 479.8 × 578.9 pt;
+  Figure 2 530.1 × 611.3 pt) and render with square colorbar ends.
+
 ## [3.0.5] — 2026-11-02
 
 Re-tuned both vendored upstream showcases to the skill's 360 dpi house style

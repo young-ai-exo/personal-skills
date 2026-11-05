@@ -27,6 +27,10 @@ The upstream layout is tuned for 144 display dpi. To run it at the skill's
 - Figure 1 panel R grows from 90 to 110 pt. Its heatmap legends are reordered
   (`Z-score`, `Ensemble`, `blobs`), widened, and spaced so the three legend
   blocks no longer overlap; the colorbar shows endpoint ticks only.
+- Both colorbar-bearing panels use a square colorbar
+  (`extend="neither"`), overriding PyComplexHeatmap's triangular
+  `extend="both"` default: `legend_kws` in Figure 1 panel R and
+  `cmap_legend_kws` in Figure 2 panel C.
 - Figure 2 panel C grows from 90 to 130 pt and uses 45° x tick labels and a
   larger legend gap. Panel J rotates its x tick labels to 90° so the four day
   labels fit in the narrow panel.

@@ -1,11 +1,11 @@
 {
   "registry_version": 1,
   "owner": "young-ai-exo",
-  "updated": "2026-11-02",
+  "updated": "2026-11-05",
   "skills": [
     {
       "name": "cnsplots",
-      "version": "3.0.5",
+      "version": "3.0.6",
       "path": "skills/cnsplots",
       "summary": "Publication-ready scientific figures in Python: a 6-step closed-loop workflow, ~100 pt panel calibration, Cell palette and Arial-first typography, dual cnsplots/matplotlib execution modes, and editable PDF/SVG output.",
       "tags": ["python", "visualization", "science", "matplotlib", "seaborn", "publication", "multipanel", "figure-layout", "color-palettes", "journal-guidelines"],

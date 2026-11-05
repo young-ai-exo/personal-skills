@@ -143,6 +143,7 @@ dp = cns.dotplot(
     legend_width=10,
     legend_hpad=0,
     legend_vgap=1,
+    cmap_legend_kws={"extend": "neither"},
     xlabel="",
     ylabel="",
     xticklabels_rotation=45,

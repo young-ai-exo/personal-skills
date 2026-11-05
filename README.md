@@ -9,7 +9,7 @@ and Claude Code.
 
 | Skill | Version | Origin | Verified against | Docs |
 | --- | --- | --- | --- | --- |
-| [`cnsplots`](skills/cnsplots) | 3.0.5 | derivative of [faridrashidi/cnsplots](https://github.com/faridrashidi/cnsplots) (BSD-3-Clause) | cnsplots 0.8.0 | [page](https://young-ai-exo.github.io/personal-skills/skills/cnsplots.html) |
+| [`cnsplots`](skills/cnsplots) | 3.0.6 | derivative of [faridrashidi/cnsplots](https://github.com/faridrashidi/cnsplots) (BSD-3-Clause) | cnsplots 0.8.0 | [page](https://young-ai-exo.github.io/personal-skills/skills/cnsplots.html) |
 | [`python-script-conventions`](skills/python-script-conventions) | 1.4.0 | original (Yusheng Yang, MIT) | snapshot 2026-08-12 | [page](https://young-ai-exo.github.io/personal-skills/skills/python-script-conventions.html) |
 
 Machine-readable index: [`registry.json`](registry.json).

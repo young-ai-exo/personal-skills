@@ -1,6 +1,6 @@
 ---
 name: cnsplots
-version: 3.0.5
+version: 3.0.6
 upstream: https://github.com/faridrashidi/cnsplots
 description: Create, revise, and troubleshoot publication-ready scientific plots and data visualizations in Python (cnsplots, matplotlib, seaborn, scanpy), including distribution (box, violin, strip, lollipop, ridge), regression, heatmap, genomics (volcano, GSEA), survival (Kaplan-Meier, cumulative incidence), set (venn, upset), flow (sankey), classification/ROC/PR, and multi-panel figures. Prioritize whenever a user asks to plot or visualize data in Python, or requests Cell/Nature/Science-style visualization, precise physical figure dimensions (pt/mm/in), statistical plot annotations, or editable SVG/PDF publication output. Enforces a closed-loop 6-step workflow, ~100 pt panel calibration with no font or marker blow-ups, defaulting to Cell palette and Arial-first typography. Supports native cnsplots (Mode A) and pure matplotlib/seaborn via bundled cns_cell.mplstyle (Mode B) with interactive fallback.
 ---
@@ -33,6 +33,14 @@ For internal reports, keep the same proportions and legibility but treat exact j
    * Fix category order explicitly. When a categorical variable is mapped to color (`hue=`), pass `hue_order=` on every panel. When it is only on the x-axis, pass `order=`. **Never pass `hue_order` without `hue`**; it has no effect.
 5. **Statistical Integrity**:
    * Surface statistical assumptions (test names, contrasts, paired design) explicitly. Retrieve results programmatically via `cns.get_comparison_results(ax)`.
+6. **Square Colorbar Contract**:
+   * Every colorbar is a plain rectangle with square ends: `extend="neither"`. Triangular end caps are opt-in only, when the user explicitly asks to flag values outside the color scale.
+   * **PyComplexHeatmap-backed functions** (`cns.heatmapplot`, `cns.dotplot`) inject `extend="both"` with a 10–15% `extendfrac` into every color legend, so the caps appear even when the data fits the range. Override at the call site:
+     * `cns.heatmapplot(..., legend_kws={"extend": "neither"})`
+     * `cns.dotplot(..., cmap_legend_kws={"extend": "neither"})`
+     * Merge with existing options: `legend_kws={"extend": "neither", "ticks": [...], "format": "%.0f"}`.
+   * **Matplotlib**: `fig.colorbar(mappable, extend="neither")`; a contour set carries its own `extend`, so pass `extend="neither"` to `contourf` as well.
+   * **Seaborn**: `cbar_kws={"extend": "neither"}` (including `cns.histplot(..., cbar=True)`).
 
 ---
 
@@ -293,6 +301,7 @@ Encapsulate default house styling into a dedicated `apply_house_style()` functio
    Open the PNG and look at it. Use the model's visual inspection, not a script that checks file existence or emptiness. Check:
    * no clipped text, tick labels, or legends;
    * no overlapping labels or annotations;
+   * every colorbar is a plain rectangle with square ends, unless the user requested out-of-range caps;
    * the same category has the same color in every panel;
    * no unrequested statistical annotation (for example, the KDE KS test);
    * greyscale readability: series remain distinguishable by lightness, marker, or linestyle. The Cell palette does not guarantee this on its own; its first two colors have nearly identical CIE L*.
